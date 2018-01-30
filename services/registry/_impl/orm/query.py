@@ -34,7 +34,8 @@ def get_tags(session, tags=None):
 
 
 def add_repos(session, repos):
-    with session_scope(session) as session:
+    with session_scope(session):
+        tags = set()
         for repo, info in repos.items():
             repo = _models.Repository(
                 name=repo,
@@ -44,7 +45,8 @@ def add_repos(session, repos):
             )
             session.add(repo)
 
-            tags = [_models.Tag(name=tag) for tag in info['tags']]
+            # only add unique tags
+            tags.add([_models.Tag(name=tag) for tag in set(info['tags'])])
             session.add_all(tags)
 
             for tag in tags:

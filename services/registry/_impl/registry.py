@@ -36,6 +36,10 @@ class RegistryService(_base.BaseService):
         return _query.get_tags(self.session)
 
     @rpc.rpc
+    def add_tags(self, tags):
+        pass
+
+    @rpc.rpc
     def add_repos(self, repos):
         return _query.add_repos(self.session, repos)
 

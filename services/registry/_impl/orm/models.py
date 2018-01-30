@@ -45,4 +45,4 @@ class Repository(DeclarativeBase):
     name = sqlalchemy.Column(sqlalchemy.String(100), unique=True)
     description = sqlalchemy.Column(sqlalchemy.String(500))
     downloads = sqlalchemy.Column(sqlalchemy.Integer, default=lambda: 0)
-    url = sqlalchemy.Column(sqlalchemy.String(500), unique=True)
+    uri = sqlalchemy.Column(sqlalchemy.String(500), unique=True)
