@@ -1,0 +1,210 @@
+{% extends "base.html" -%}
+{% import "macros/blocks.html" as blocks -%}
+{% import "macros/cards.html" as cards -%}
+
+{% block head -%}
+    {{ super() -}}
+{% endblock -%}
+
+{% block body -%}
+
+{# TODO: come from db -#}
+
+{% set linkedin = 'https://www.linkedin.com/in/day-dreamer/'-%}
+{% set github = 'https://www.github.com/DayDreamer3d/'-%}
+{% set facebook = 'https://www.facebook.com/DayDreamer1908/'-%}
+
+{% set experience_entries = [
+    ['3', 'MPC', 'Software Developer'],
+    ['1', 'Xentrix', 'Pipeline Developer'],
+    ['2', 'Prana', 'Pipeline TD'],
+]
+-%}
+
+{% set experience_info = {
+    'card': 'experience',
+    'button': {'name': 'MORE', 'link': linkedin},
+    'items': [
+        {
+            'left': {'title': 'MPC', 'sec_title': ['Vfx Studio']},
+            'right': {
+                'title': 'Software Developer', 'sec_title': ['Core Engineering Team', 'Feb 2014 - Mar 2017'],
+                'items': [
+                    {
+                        'sub_title': 'Managing Internal Cloud (Amanda)',
+                        'tags': ['Python', 'PaaS', 'ELK', 'Graylog', 'RabbitMQ', 'Saltstack'],
+                        'sub_description': 'We have monitoring and logging system made up of logstash and grayLog respectively, backed up by elasticSearch. Monitoring system provides the good indication about the health of the system. For deep dives I prefer checking the state of traffic over messaging queue rabbitMQ dashboard. We use saltStack for configuration management of our services and components of the system and circus for process management.',
+                    },
+                    {
+                        'sub_title': 'Hosted Services Development',
+                        'tags': ['Python', 'Microservices', 'Pub-sub', 'Queue'],
+                        'line_items': [
+                            {
+                                'li_title': 'SyncQueue',
+                                'li_description': "project responsible for syncing data across all the sites. It's based on priority queue. It's api is hosted as a service on the cloud."},
+                            {
+                                'li_title': 'Notification',
+                                'li_description': "Notifies subscribed clients post happening of an event. It is based on publish subscribe model. Actions are generated from events, one of the actions being generation of rss message which would notify the clients."},
+                            {
+                                'li_title': 'Asset Filtering',
+                                'li_description': "Service responsible for calculating asset dependencies. Improved the calculation of dependencies by ~30 percent by using lazy loading, python generators."
+                            },
+                        ]
+                    }
+                ]
+            },
+        },
+        {
+            'left': {'title': 'Xentrix', 'sec_title': ['Animation Studio']},
+            'right': {
+                'title': 'Piepline Developer', 'sec_title': ['Pipeline Team', 'Sep 2012 - Feb 2014'],
+                'items': [
+                    {
+                        'sub_title': 'Standalone Tools',
+                        'tags': ['Python', 'Avisynth', 'Threading', 'PyQt'],
+                        'line_items': [
+                            {
+                                'li_title': 'Lineup Tool',
+                                'li_description': "Creates episode lineup. Fetches the latest clips from database, creates layout and sequence using avisynth, parallelise the process using threading. Overall, the process completed in 5-6 minutes which was taking an hour before."
+                            },
+                        ]
+                    },
+                ]
+            },
+        },
+        {
+            'left': {'title': 'Prana', 'sec_title': ['Animation Studio']},
+            'right': {
+                'title': 'Piepline TD', 'sec_title': ['Technology Team', 'Nov 2010 - Aug 2012'],
+                'items': [
+                    {
+                        'sub_title': 'Development',
+                        'tags': ['Python', 'Maya', 'PyQt'],
+                        'sub_description': 'Created various scripts for the projects and artists.',
+                    },
+                ]
+            },
+        },
+    ],
+}
+-%}
+
+{% set tutorials_info = {
+    'card': 'tutorials',
+    'items': [
+        {
+            'left': {'title': 'Microservices'},
+            'right': [
+                {
+                    'title': 'Nameko And RabbitMQ',
+                    'description': 'In this series we will see how Nameko does microservices and set ups RabbitMQ for rpc and much more.',
+                    'tags': ['Nameko', 'RabbitMQ', 'Python'],
+                    'link': '',
+                },
+                {
+                    'title': 'Nameko Extensions App',
+                    'description': 'Simple app with Nameko microservices and extensions.',
+                    'tags': ['Nameko', 'RabbitMQ', 'Python'],
+                },
+
+
+            ],
+        },
+    ],
+}
+-%}
+
+{% set tutorial_entries = [
+    ['2', 'Microservices', 'Nameko | RabbitMQ'],
+    ['1', 'Video Layout', 'Avisynth'],
+    ['1', 'Limb Squash', 'Maya'],
+]
+-%}
+
+{% set accomplishment_entries = [
+    ['EOM', 'MPC', 'Sep 2015'],
+    ['MVC', 'Xentrix', 'Sep 2013'],
+    ['EOM', 'Prana', 'Feb 2012'],
+]
+-%}
+
+{% set recommendation_entries = [
+    ['Connon', 'MPC', 'Mar 2016'],
+    ['Volodymyr', 'MPC', 'Aug 2017'],
+    ['Mayur', 'Xentrix', 'Feb 2014'],
+]
+-%}
+
+{% set name = 'Anurag Bisht' -%}
+{% set position = 'Software Developer' -%}
+{% set about_me = [
+    "For past six years I've worked in different development roles in vfx industry.",
+    'Developed services and managed internal PaaS.',
+    'In free time I enjoy playing football and trekking.',
+    '',
+    '',
+    '"Be skeptical, but learn to listen" - Don Muigel Ruiz',
+    ]
+-%}
+{% set about_me = about_me | join('\n') -%}
+
+{% set fab_inputs = [
+    {'id': 'name', 'name': 'name', 'placeholder': 'Name'},
+    {'id': 'email', 'name': 'email', 'placeholder': 'Email [for notification]'},
+    {'type': 'select', 'id': 'subject', 'name': 'subject',
+        'options': [
+            {'value': 'hi', 'text': 'Want to say hi ...'},
+            {'value': 'about', 'text': 'About this site'},
+            {'value': 'project', 'text': 'Project Collaboration'},
+            {'value': 'career', 'text': 'Career Prospects'}
+        ]
+    },
+    {'type': 'textarea', 'id': 'message', 'name': 'message', 'placeholder': 'Message'},
+    {'type': 'submit', 'id': 'submit', 'name': 'submit', 'value': 'SUBMIT'},
+] -%}
+
+{% set contact_icon = 'icon-bubbles' -%}
+
+
+{# -------------------------------- #}
+
+<div>
+
+    <header class="row">
+        {% call blocks.left_header(name, [linkedin, github, facebook]) -%}
+        {% endcall -%}
+        {% call blocks.right_header(name, position, about_me) -%}
+        {% endcall -%}
+        {% call blocks.contact_fab(contact_icon, fab_inputs) -%}
+        {% endcall -%}
+    </header>
+
+    <main>
+        <div id="main-container" class="row level-1">
+            {% call cards.card('Experience', 'exp_pie', experience_entries, experience_info) -%}
+            {% endcall -%}
+            {% call cards.card('Tutorials', 'tut_pie', tutorial_entries, '') -%}
+            {% endcall -%}
+            {% call cards.card('Accomplishments', 'acc_pie', '') -%}
+            {% endcall -%}
+            {% call cards.card('Recommendations', 'rec_pie', '') -%}
+            {% endcall -%}
+        </div>
+    </main>
+
+</div>
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/app.js') }}"></script>
+<!-- google analytics -->
+<script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-106170684-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+{% endblock -%}

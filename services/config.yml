@@ -1,0 +1,7 @@
+WORKING_ENV: 'development'
+
+LOGGING:
+    LEVEL: 'debug'
+    FORMATTER: 'debug'
+
+AMQP_URI: 'amqp://localhost'

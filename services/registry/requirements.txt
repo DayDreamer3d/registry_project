@@ -1,0 +1,5 @@
+nameko
+nameko-redis
+nameko-sqlalchemy
+PyMySQL
+sqlalchemy_utils
