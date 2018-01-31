@@ -34,7 +34,7 @@ class Tag(DeclarativeBase):
     association = sqlalchemy.orm.relationship(
         'Repository',
         secondary=repositories_tags,
-        backref=sqlalchemy.orm.backref('items', lazy='dynamic')
+        backref=sqlalchemy.orm.backref('tags', lazy='dynamic')
     )
 
 

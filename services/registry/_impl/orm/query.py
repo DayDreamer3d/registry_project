@@ -1,19 +1,17 @@
-from contextlib import contextmanager
 import nameko_sqlalchemy
 
 from . import models as _models
 
+# TODO: make these functions as methods,
+# be careful class may hold state for "session" var.
+def add_tags(session, tags=None):
+    """ Add the tags to the db.
 
-@contextmanager
-def session_scope(session):
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+        Args:
+    """
+    tags = [_models.Tag(name=tag, popularity=1) for tag in tags]
+    session.add_all(tags)
+    session.commit()
 
 
 def get_tags(session, tags=None):
@@ -21,39 +19,46 @@ def get_tags(session, tags=None):
 
         Args:
     """
-    with session_scope(session) as session:
-        if tags:
-            return session.query(_models.Tag)\
-                .filter(_models.Tag(tags))\
-                .order_by(_models.Tag.popularity.desc())\
-                .all()
-        else:
-            return session.query(_models.Tag)\
-                .order_by(_models.Tag.popularity.desc())\
-                .all()
+    if tags:
+        return session.query(_models.Tag)\
+            .filter(_models.Tag.name.in_(tags))\
+            .order_by(_models.Tag.popularity.desc())\
+            .all()
+    else:
+        return session.query(_models.Tag)\
+            .order_by(_models.Tag.popularity.desc())\
+            .all()
 
 
 def add_repos(session, repos):
-    with session_scope(session):
-        tags = set()
-        for repo, info in repos.items():
-            repo = _models.Repository(
-                name=repo,
+    for repo in repos:
+        for name, info in repo.items():
+            repo_obj = _models.Repository(
+                name=name,
                 description=info['description'],
                 downloads=info['downloads'],
-                url=info['url']
+                uri=info['uri']
             )
-            session.add(repo)
+            session.add(repo_obj)
 
-            # only add unique tags
-            tags.add([_models.Tag(name=tag) for tag in set(info['tags'])])
-            session.add_all(tags)
+            for tag in info['tags']:
+                tag = session.query(_models.Tag)\
+                        .filter(_models.Tag.name == tag)\
+                        .one()
+                repo_obj.labels.append(tag)
+    session.commit()
 
-            for tag in tags:
-                repo.items.append(tag)
 
-
-
-def get_repos(tags=None):
-    with session_scope(session) as session:
-        pass
+def get_repos(session, tags=None):
+    if tags:
+        # session.query(_models.labels)\
+        # .filter(_models.labels.tag_id.in_(tags))
+        tag_ids = [tag.id_ for tag in get_tags(session, tags)]
+        return session.query(_models.labels)\
+            .filter(_models.labels.tag.id_.in_(tags))\
+            .all()
+            # .order_by(_models.Repository.downloads.desc())\
+    else:
+        return session.query(_models.Repository)\
+            .order_by(_models.Repository.downloads.desc())\
+            .all()

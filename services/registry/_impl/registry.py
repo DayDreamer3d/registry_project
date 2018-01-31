@@ -6,7 +6,10 @@ from nameko import containers
 import nameko_redis
 
 from ... import base as _base
-from ..._utils import config as _config
+from ..._utils import (
+    config as _config,
+    db as _db
+)
 from .orm import (
     models as _models,
     query as _query,
@@ -15,6 +18,7 @@ from .orm import (
 
 
 service_name = 'registry'
+
 
 # TODO: docs please critical for the service
 class RegistryService(_base.BaseService):
@@ -32,20 +36,45 @@ class RegistryService(_base.BaseService):
         # self.log = _log.Logging()
 
     @rpc.rpc
-    def get_tags(self):
-        return _query.get_tags(self.session)
+    def add_tags(self, tags):
+        tags_in_db = self.get_tags(tags)
+        tags = list(set(tags).difference(tags_in_db))
+        _query.add_tags(self.session, tags)
 
     @rpc.rpc
-    def add_tags(self, tags):
-        pass
+    def get_tags(self, tags=None):
+        return [
+            (tag.name, tag.popularity)
+            for tag in _query.get_tags(self.session, tags)
+        ]
 
     @rpc.rpc
     def add_repos(self, repos):
-        return _query.add_repos(self.session, repos)
+        tags = []
+        for repo_obj in repos:
+            for repo, info in repo_obj.items():
+                tags.extend(info['tags'])
 
+        # REVIEW: this would be a rpc call, do we want to do this way
+        # or a direct query ??
+        self.add_tags(list(set(tags)))
+        _query.add_repos(self.session, repos)
+
+    # TODO: fix this
     @rpc.rpc
-    def get_repos_from_tags(self, tags):
+    def get_repos(self, tags=None):
+        repos = []
         return _query.get_repos(self.session, tags)
+        # for repo_obj in _query.get_repos(self.session, tags):
+        #     repos.append({
+        #         repo_obj.name: {
+        #             'description': repo_obj.description,
+        #             'downloads': repo_obj.downloads,
+        #             'uri': repo_obj.uri,
+        #             'tags': [tag.name for tag in repo_obj.tags]
+        #         }
+        #     })
+        # return repos
 
 
 def create_container():
@@ -93,3 +122,8 @@ def create_container():
     # @rpc.rpc
     # def get_repos(self, tags=()):
     #     pass
+
+if __name__ == '__main__':
+    service_container = create_container()
+    service_container.start()
+    service_container.wait()

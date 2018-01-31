@@ -1,6 +1,7 @@
 CACHE:
     LAYER: 'service'
     KEY: 'software_registry:services:registry'
+
 INSTANCES: 3
 
 DB_URIS:
