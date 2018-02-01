@@ -1,6 +1,8 @@
 import eventlet
 eventlet.monkey_patch()
 
+import operator
+
 from nameko import rpc
 from nameko import containers
 import nameko_redis
@@ -13,68 +15,96 @@ from ..._utils import (
 from .orm import (
     models as _models,
     query as _query,
-    session as _session
 )
+from . import cache as _cache
 
 
 service_name = 'registry'
+config = _config.get_config(service_name)
 
 
 # TODO: docs please critical for the service
 class RegistryService(_base.BaseService):
     name = service_name
-    config = _config.get_config(service_name)
-    session = _session.DbSession(_models.DeclarativeBase)
-
-    def __init__(self, config=None):
-
-        # redis cache related
-        self.repo_key = self.config['CACHE']['KEY']
-        self.redis = nameko_redis.Redis(self.config['WORKING_ENV'])
-
-        # logging
-        # self.log = _log.Logging()
+    session = _db.DbSession(_models.DeclarativeBase)
+    redis = nameko_redis.Redis(config['WORKING_ENV'])
 
     @rpc.rpc
     def add_tags(self, tags):
         tags_in_db = self.get_tags(tags)
-        tags = list(set(tags).difference(tags_in_db))
-        _query.add_tags(self.session, tags)
+
+        tags_to_add = list(
+            set(tags).difference([tag.name for tag in tags_in_db])
+        )
+        _query.add_tags(self.session, tags_to_add)
+
+        # _cache.add_tags([(tag, 1) for tag in tags])
 
     @rpc.rpc
     def get_tags(self, tags=None):
-        return [
-            (tag.name, tag.popularity)
-            for tag in _query.get_tags(self.session, tags)
-        ]
+        result = _cache.get_tags(self.redis, config['CACHE']['KEY'], tags)
+
+        remaining_tags = [name for name, popularity in result if name not in tags]
+
+        if remaining_tags:
+            db_result = [
+                tuple(tag.name, tag.popularity)
+                for tag in _query.get_tags(self.session, tags)
+            ]
+
+            # update the cache
+            # _cache.add_tags(db_result)
+
+            result = list(set(result).union(db_result))
+            result.sort(key=operator.itemgetter(1), reverse=True)
+
+        return result
 
     @rpc.rpc
     def add_repos(self, repos):
+        # get the tags associated with given repos
         tags = []
         for repo_obj in repos:
             for repo, info in repo_obj.items():
                 tags.extend(info['tags'])
 
+        # Only update the unique tags
         # REVIEW: this would be a rpc call, do we want to do this way
         # or a direct query ??
         self.add_tags(list(set(tags)))
-        _query.add_repos(self.session, repos)
 
-    # TODO: fix this
+        # update popularity for tags (include duplicates)
+        _query.update_popularity(tags)
+        added_repos = _query.add_repos(self.session, repos)
+
+        # if tag in cache
+        if added_repos:
+            _cache.add_repos(added_repos)
+        # update tag key and repo
+
+    # TODO: fix this service method to get the items from db
     @rpc.rpc
     def get_repos(self, tags=None):
-        repos = []
-        return _query.get_repos(self.session, tags)
-        # for repo_obj in _query.get_repos(self.session, tags):
-        #     repos.append({
-        #         repo_obj.name: {
-        #             'description': repo_obj.description,
-        #             'downloads': repo_obj.downloads,
-        #             'uri': repo_obj.uri,
-        #             'tags': [tag.name for tag in repo_obj.tags]
-        #         }
-        #     })
-        # return repos
+        # _query.update_popularity(tags)
+
+        # fetch from cache
+        cached_repos, non_cached_tags = _cache.get_repos(tags)
+
+        # fetch only non cached tag tags from db
+        db_repos = []
+        if non_cached_tags:
+            db_repos = _query.get_repos(self.session, non_cached_tags)
+
+        # update cache with non cached tag results
+        if db_repos:
+            _cache.add_repos(db_repos)
+
+        return repos
+
+    @rpc.rpc
+    @_cache.update_repo_downloads([repo])
+    def update_repo_downloads(self, repo):
+        _query.update_downloads([repo])
 
 
 def create_container():
