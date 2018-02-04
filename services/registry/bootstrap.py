@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from .._utils import config, db
 from ._impl import registry
-from ._impl.orm import models
+from ._impl import models
 
 
 def create_db():
