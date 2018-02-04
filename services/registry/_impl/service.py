@@ -1,3 +1,7 @@
+""" Registry service module containing all the public entrypoints for the service.
+
+"""
+# monkey paching should be at top level.
 import eventlet
 eventlet.monkey_patch()
 
@@ -5,12 +9,12 @@ import operator
 
 from nameko import containers, rpc
 import nameko_redis
-import nameko_logstash
 
 from ... import base as _base
 from ..._utils import (
     config as _config,
-    db as _db
+    db as _db,
+    log as _log
 )
 from . import (
     cache as _cache,
@@ -21,6 +25,11 @@ from . import (
 
 service_name = 'registry'
 config = _config.get_config(service_name)
+logger = _log.create_file_logger(
+    service_name,
+    config['LOG']['LEVEL'],
+    _log.create_log_file(config['LOG']['DIR'], service_name),
+)
 
 
 # TODO: docs please critical for the service
@@ -28,12 +37,52 @@ class RegistryService(_base.BaseService):
     name = service_name
     session = _db.DbSession(_models.DeclarativeBase)
     redis = nameko_redis.Redis('services')
-    log = nameko_logstash.LogstashDependency(
-        local_file=os.path.join(
-            config['LOGGING']['DIR'],
-            '{}.yml'.format(service_name)
+
+    @rpc.rpc
+    def get_tags(self, tags=None):
+        tags = tags or []
+        logger.debug('Tags supplied are : {}'.format(tags))
+        cached_tags, non_cached_tags = [], []
+
+        try:
+            cached_tags, non_cached_tags = _cache.get_tags(
+                self.redis,
+                config['CACHE']['KEY'],
+                tags
+            )
+        except Exception as e:
+            logger.error(
+                'Exception occurred while fetching cache.',
+                exc_info=True
+            )
+
+        if cached_tags and not non_cached_tags:
+            logger.info(
+                'Result: Fetched Tags({}). Unfectched Tags({}).'.format(cached_tags, non_cached_tags),
+            )
+            return cached_tags + non_cached_tags
+
+        non_cached_tags = [
+            (tag.name, tag.popularity)
+            for tag in _query.get_tags(self.session, non_cached_tags)
+        ]
+
+        logger.info(
+            'Tags({}) fetched from db.'.format(non_cached_tags)
         )
-    )
+
+        if non_cached_tags:
+            _cache.add_tags(self.redis, config['CACHE']['KEY'], non_cached_tags)
+
+            logger.info(
+                'Tags({}) added to the cache.'.format(non_cached_tags),
+            )
+
+        logger.info(
+            'Result: Fetched Tags({}). Unfectched Tags({}).'.format(cached_tags, non_cached_tags),
+        )
+
+        return cached_tags + non_cached_tags
 
     @rpc.rpc
     def add_tags(self, tags):
@@ -44,35 +93,16 @@ class RegistryService(_base.BaseService):
         )
         _query.add_tags(self.session, tags_to_add)
 
-        tags = [(tag, 1) for tag in tags]
-        _cache.add_tags(self.redis, config['CACHE']['KEY'], tags)
+        logger.info(
+            'Tags({}) added to db.'.format(tags_to_add),
+        )
 
-    @rpc.rpc
-    def get_tags(self, tags=None):
-        tags = tags or []
-        cached_tags, non_cached_tags = [], []
+        tag_objs = [(tag, 1) for tag in tags]
+        _cache.add_tags(self.redis, config['CACHE']['KEY'], tag_objs)
 
-        try:
-            cached_tags, non_cached_tags = _cache.get_tags(
-                self.redis,
-                config['CACHE']['KEY'],
-                tags
-            )
-        except Exception as e:
-            # TODO: log Exception
-            pass
-
-        if cached_tags and not non_cached_tags:
-            return cached_tags + non_cached_tags
-
-        non_cached_tags = [
-            (tag.name, tag.popularity)
-            for tag in _query.get_tags(self.session, non_cached_tags)
-        ]
-
-        _cache.add_tags(self.redis, config['CACHE']['KEY'], non_cached_tags)
-
-        return cached_tags + non_cached_tags
+        logger.info(
+            'Tags({}) added to cache.'.format(tags),
+        )
 
     @rpc.rpc
     def add_repos(self, repos):
@@ -92,26 +122,27 @@ class RegistryService(_base.BaseService):
 
         added_repos = _query.add_repos(self.session, repos)
 
+        logger.info(
+            'Repos({}) added to db.'.format(added_repos),
+        )
+
         if added_repos:
             try:
-                _cache.add_repos(
-                    self.redis,
-                    config['CACHE']['KEY'],
-                    added_repos,
+                _cache.add_repos(self.redis, config['CACHE']['KEY'], added_repos,
                     only_update=True
                 )
+
+                logger.info(
+                    'Repos({}) added to cache.'.format(added_repos),
+                )
             except Exception:
-                # TODO: log exception
-                pass
+                logger.error(
+                    'Exception occurred while adding to cache.',
+                    exc_info=True
+                )
 
     @rpc.rpc
     def get_repos(self, tags=None):
-        # Check the labels
-        # for existent tags (cached tags) -> get the repos
-        # for non cached tags -> get it from db
-        # update the labels in cache
-        # update missing repos
-        # TODO: for now get all the repos from db
         tags = tags or []
 
         # fetch from cache
@@ -121,14 +152,29 @@ class RegistryService(_base.BaseService):
             tags
         )
 
+        logger.info(
+            'Repos({}) fetched from cache.\n Tags({}) are not in cache'.format(cached_repos, non_cached_tags)
+        )
+
         # fetch only non cached tags from db
-        db_repos = _query.get_repos_from_tags(self.session, non_cached_tags)
+        db_repos = []
+        if non_cached_tags:
+            db_repos = _query.get_repos_from_tags(self.session, non_cached_tags)
+
+        db_repo_names = [repo.name for repo in db_repos]
+        logger.info(
+            'Repos({}) fetched from db.'.format(db_repo_names)
+        )
 
         # update cache with non cached tag results
         if db_repos:
             _cache.add_repos(self.redis, config['CACHE']['KEY'], db_repos)
+            logger.info(
+                'Repos({}) added to cache.'.format(db_repo_names)
+            )
 
-        _query.update_popularity(self.session, tags)
+        if tags:
+            _query.update_popularity(self.session, tags)
 
         db_repos = [
             {
@@ -140,8 +186,11 @@ class RegistryService(_base.BaseService):
             }
             for repo in db_repos
         ]
+
         repos = cached_repos + db_repos
-        self.update_downloads([repo['name'] for repo in repos])
+
+        if repos:
+            self.update_downloads([repo['name'] for repo in repos])
 
         return repos
 
@@ -150,18 +199,24 @@ class RegistryService(_base.BaseService):
         result = {}
 
         try:
-            result = _cache.get_repo_details(self.redis, config['CACHE']['KEY'], repo)
+            result = _cache.get_repo_details(self.redis, config['CACHE']['KEY'], repo) or {}
         except Exception as e:
-            # TODO: log Exception
-            pass
+            logger.error(
+                'Exception occurred while fetching cache.',
+                exc_info=True
+            )
 
         if result:
             return result
 
-        repo = _query.get_repo_details(self.session, repo)
+        repo_details = _query.get_repo_details(self.session, repo)
 
-        # cache the result
-        _cache.add_repos(self.redis, config['CACHE']['KEY'], [repo])
+        if not repo_details:
+            logger.debug('No detail found for Repo({}).'.format(repo_details))
+            return repo_details
+
+        _cache.add_repos(self.redis, config['CACHE']['KEY'], [repo_details])
+        logger.debug('Repo({}) added to cache.'.format(repo))
 
         return {
             'name': repo.name,

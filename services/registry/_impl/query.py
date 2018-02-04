@@ -2,6 +2,21 @@ import nameko_sqlalchemy
 
 from . import models as _models
 
+from ..._utils import (
+    config as _config,
+    log as _log
+)
+
+
+service_name = 'registry'
+config = _config.get_config(service_name)
+logger = _log.create_file_logger(
+    service_name,
+    config['LOG']['LEVEL'],
+    _log.create_log_file(config['LOG']['DIR'], service_name),
+)
+
+
 # TODO: make these functions as methods,
 # be careful class may hold state for "session" var.
 def add_tags(session, tags):
@@ -9,10 +24,11 @@ def add_tags(session, tags):
 
         Args:
     """
-    tags = [_models.Tag(name=tag, popularity=1) for tag in tags]
-    session.add_all(tags)
+    tag_objs = [_models.Tag(name=tag, popularity=1) for tag in tags]
+    session.add_all(tag_objs)
     session.commit()
-    # TODO:  Update cache
+
+    logger.debug('Tags() are added to db.'.format(tags))
 
 
 def update_popularity(session, tags):
@@ -40,19 +56,29 @@ def get_tags(session, tags=None):
 
         Args:
     """
+    tags = tags or []
+    tag_objs = []
+
     if tags:
-        return session.query(_models.Tag)\
+        tag_objs = session.query(_models.Tag)\
             .filter(_models.Tag.name.in_(tags))\
             .order_by(_models.Tag.popularity.desc())\
             .all()
     else:
-        return session.query(_models.Tag)\
+        tag_objs = session.query(_models.Tag)\
             .order_by(_models.Tag.popularity.desc())\
             .all()
 
+    tag_names = [tag.name for tag in tag_objs]
+    logger.debug('Tags({}) are fetched from db.'.format(tag_names))
+
+    return tag_objs
+
 
 def add_repos(session, repos):
+
     added_repos = []
+
     for repo in repos:
         for name, info in repo.items():
             repo_obj = _models.Repository(
@@ -65,11 +91,14 @@ def add_repos(session, repos):
             for tag in info['tags']:
                 tag = session.query(_models.Tag)\
                         .filter(_models.Tag.name == tag)\
-                        .one()
+                        .first()
                 repo_obj.labels.append(tag)
 
             added_repos.append(repo_obj)
     session.commit()
+
+    repo_names = [repo.name for repo in added_repos]
+    logger.debug('Repos({}) are added to db.'.format(repo_names))
 
     return added_repos
 
@@ -88,16 +117,23 @@ def update_downloads(session, repos):
 
 
 def get_repos_from_tags(session, tags=None):
-    # if tags:
+    if not tags:
+        return []
+
     tag_ids = [tag.id_ for tag in get_tags(session, tags)]
-    return session.query(_models.Repository)\
+    repos = session.query(_models.Repository)\
         .filter(_models.Repository.labels.any(
             _models.Tag.id_.in_(tag_ids)))\
         .order_by(_models.Repository.downloads.desc())\
         .all()
 
+    repo_names = [repo.name for repo in repos]
+    logger.debug('Repos({}) are fetched from db for Tags({}).'.format(repo_names, tags))
+
+    return repos
+
 
 def get_repo_details(session, repo):
     return session.query(_models.Repository)\
         .filter(_models.Repository.name == repo)\
-        .one()
+        .first()

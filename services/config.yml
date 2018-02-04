@@ -1,6 +1,5 @@
-LOGGING:
-    LEVEL: 'debug'
-    FORMATTER: 'debug'
+LOG:
+    LEVEL: DEBUG
     DIR: 'D:/temp/var/log/software_registry/services'
 
 AMQP_URI: 'amqp://localhost'

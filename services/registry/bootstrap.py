@@ -9,7 +9,7 @@ from ._impl import service, models
 
 def create_db():
     # create the db, sqlachemy doesn't create db
-    db.create_db(service.RegistryService.config['DB_URIS']['registry:Base'])
+    db.create_db(service.config['DB_URIS']['registry:Base'])
 
 
 def insert_data():
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     container.start()
 
     # insert the data
-    insert_data()
+    # insert_data()
 
     # keep the service running
     container.wait()
