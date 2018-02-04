@@ -5,9 +5,7 @@ cache_key_delimiter = ':'
 
 # REVIEW: what about having cache as a service
 
-# TODO: check O notation for redis commands
 # TODO: these cache functions could be in class.
-
 
 service_name = 'registry'
 logger = logging.getLogger('services_{}'.format(service_name))
