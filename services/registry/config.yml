@@ -1,5 +1,5 @@
 CACHE:
-    LAYER: 'service'
+    LAYER: 'services'
     KEY: 'software_registry:services:registry'
 
 INSTANCES: 3
