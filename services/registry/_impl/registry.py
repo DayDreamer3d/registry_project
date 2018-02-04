@@ -12,11 +12,11 @@ from ..._utils import (
     config as _config,
     db as _db
 )
-from .orm import (
+from . import (
+    cache as _cache,
     models as _models,
     query as _query,
 )
-from . import cache as _cache
 
 
 service_name = 'registry'
