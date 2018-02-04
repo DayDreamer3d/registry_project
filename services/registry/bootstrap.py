@@ -1,18 +1,15 @@
 import random
 
-# import nameko
-# from nameko.standalone import rpc
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 
 from .._utils import config, db
-from ._impl import registry
-from ._impl import models
+from ._impl import service, models
 
 
 def create_db():
     # create the db, sqlachemy doesn't create db
-    db.create_db(registry.RegistryService.config['DB_URIS']['registry:Base'])
+    db.create_db(service.RegistryService.config['DB_URIS']['registry:Base'])
 
 
 def insert_data():
@@ -71,7 +68,7 @@ def insert_data():
     tags = list(set(tags))
 
     engine = sqlalchemy.create_engine(
-        registry.RegistryService.config['DB_URIS']['registry:Base']
+        service.RegistryService.config['DB_URIS']['registry:Base']
     )
 
     db_session = sessionmaker(bind=engine)()
@@ -101,7 +98,7 @@ if __name__ == '__main__':
     create_db()
 
     # create service container
-    container = registry.create_container()
+    container = service.create_container()
 
     # starting the service will create the tables
     container.start()
