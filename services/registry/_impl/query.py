@@ -1,20 +1,12 @@
+import logging
+
 import nameko_sqlalchemy
 
 from . import models as _models
 
-from ..._utils import (
-    config as _config,
-    log as _log
-)
-
 
 service_name = 'registry'
-config = _config.get_config(service_name)
-logger = _log.create_file_logger(
-    service_name,
-    config['LOG']['LEVEL'],
-    _log.create_log_file(config['LOG']['DIR'], service_name),
-)
+logger = logging.getLogger('services_{}'.format(service_name))
 
 
 # TODO: make these functions as methods,

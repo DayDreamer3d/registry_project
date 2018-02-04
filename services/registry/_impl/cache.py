@@ -1,8 +1,4 @@
-from ..._utils import (
-    log as _log,
-    config as _config
-)
-
+import logging
 
 # TODO: add this into config
 cache_key_delimiter = ':'
@@ -14,12 +10,7 @@ cache_key_delimiter = ':'
 
 
 service_name = 'registry'
-config = _config.get_config(service_name)
-logger = _log.create_file_logger(
-    service_name,
-    config['LOG']['LEVEL'],
-    _log.create_log_file(config['LOG']['DIR'], service_name),
-)
+logger = logging.getLogger('services_{}'.format(service_name))
 
 
 def add_tags(redis, cache_key, tags):
