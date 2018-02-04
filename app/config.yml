@@ -1,0 +1,16 @@
+WORKING_ENV: 'development'
+
+LOGGING:
+    LEVEL: 'debug'
+    FORMATTER: 'debug'
+
+REDIS_URIS:
+    app: 'redis://127.0.0.1:6379/0'
+    development: 'redis://127.0.0.1:6379/0'
+
+CACHE:
+    LAYER: 'app'
+    KEY: 'software_registry:app'
+    DELIMITER: ':'
+
+NAMEKO_AMQP_URI: 'amqp://localhost'

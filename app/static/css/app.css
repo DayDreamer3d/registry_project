@@ -1,0 +1,71 @@
+* {
+    margin: 0px;
+    padding: 0px;
+
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -o-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body {
+    max-width: 620px;
+    margin: 0 auto;
+    background-color: #90a4ae;
+}
+
+.app-bar {
+    background-color: #00897b;
+    height: 100px;
+}
+
+.app-bar > h1 {
+    padding-left: 16px;
+    padding-top: 30px;
+}
+
+.app-bar > h2 {
+    padding-top: 58px;
+}
+
+.tag {
+    height: 40px;
+    border-bottom: solid #ccd4d7 1px;
+}
+
+.tag > h3 {
+    margin-top: 10px;
+    margin-left: 16px;
+}
+
+h1  {
+    color: #fff;
+}
+
+h2  {
+    color: #fff;
+}
+
+nav {
+    background-color: #546e7a;
+    min-height: 500px;
+    color: #ccd4d7;
+}
+
+.col-1 { width: 8.33%; }
+.col-2 { width: 16.66%; }
+.col-3 { width: 25%; }
+.col-4 { width: 33.33%; }
+.col-5 { width: 41.66%; }
+.col-6 { width: 50%; }
+.col-7 { width: 58.33%; }
+.col-8 { width: 66.66%; }
+.col-9 { width: 75%; }
+.col-10 { width: 83.33%; }
+.col-11 { width: 91.66%; }
+.row {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+}
