@@ -1,4 +1,5 @@
 nameko
+nameko-logstash
 nameko-redis
 nameko-sqlalchemy
 PyMySQL
