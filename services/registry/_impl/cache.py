@@ -139,7 +139,8 @@ def get_repos_from_tags(redis, cache_key, tags=None):
                 repos_per_tag = pipe.zrevrangebyscore(
                     label_item_key, '+inf', 0, withscores=True).execute()[0]
 
-                logger.debug('Repos({}) for Tag({}).'.format(repos, tag))
+                repo_names = [repo.name for repo in repos]
+                logger.debug('Repos({}) for Tag({}).'.format(repo_names, tag))
 
             # if tag doesn't exists in cache
             # skip it and eventually get its result from db
