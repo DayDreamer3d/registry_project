@@ -2,5 +2,3 @@ Flask
 gunicorn
 nameko
 flask_nameko
-nameko-sqlalchemy
-nameko-redis
