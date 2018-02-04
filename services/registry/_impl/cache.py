@@ -3,34 +3,53 @@ import collections
 
 # from nameko_redis import Redis
 
-
+# TODO: add this into config
 cache_key_delimiter = ':'
 
 # REVIEW: what about having cache as a service
+
+# TODO: check O notation for redis commands
+
 
 def add_tags(redis, cache_key, tags):
     key = cache_key_delimiter.join([cache_key, 'tags'])
 
     items = []
     for tag in tags:
-        items.append(tag[0])  # tag name
         items.append(int(tag[1]))  # popularity as score
+        items.append(tag[0])  # tag name
 
     with redis.pipeline() as pipe:
         pipe.zadd(key, *items).execute()
 
 
-def get_tags(redis, cache_key):
+def get_tags(redis, cache_key, tags):
     key = cache_key_delimiter.join([cache_key, 'tags'])
+
     with redis.pipeline() as pipe:
-        tags = pipe.zrevrangebyscore(key, '+inf', 0, withscores=True).execute()
-        return [
-            (tag.decode(), int(popularity))
-            for tag, popularity in tags[0]
-        ]
+        if tags:
+            cached_tags, non_cached_tags = [], []
+
+            for tag in tags:
+                popularity = pipe.zscore(key, tag).execute()[0]
+                if popularity:
+                    cached_tags.append((tag, popularity))
+                else:
+                    non_cached_tags.append(tag)
+
+            return cached_tags, non_cached_tags
+
+        else:
+            tags_items = pipe.zrevrangebyscore(key, '+inf', 0, withscores=True).execute()
+            return [
+                [
+                    (tag, int(popularity))
+                    for tag, popularity in tags_items[0]
+                ], []
+            ]
 
 
-def add_repos(redis, cache_key, repos):
+def add_repos(redis, cache_key, repos, only_update=False):
     label_key = cache_key_delimiter.join([cache_key, 'labels'])
     repo_key = cache_key_delimiter.join([cache_key, 'repos'])
     tag_key = cache_key_delimiter.join([cache_key, 'tags'])
@@ -38,55 +57,58 @@ def add_repos(redis, cache_key, repos):
     # search how many tags are in cache
     with redis.pipeline() as pipe:
         for repo in repos:
-            tags_in_cache = False
+
+            if not repo.labels:
+                continue
 
             for tag in repo.labels:
+                # update popularity for tag (not labels)
+                pipe.zincrby(tag_key, tag.name).execute()
+
                 # intenionally using redis than pipeline
                 # because pipeline will buffer the below commands
                 # and will execute the first buffered command here
                 # which would give the undesired result
                 # TODO: look deep in pipelining and find solution
-                if redis.zrank(tag_key, tag.name) is not None:
-                    tags_in_cache = True
 
-                    # update popularity for tag
-                    pipe.zincrby(tag_key, tag.name)
+                # only add repo if that tag is present in the cache
+                # it's an update strategy to keep the cache fresh for a particular tag
+                if only_update and redis.zscore(label_key, tag.name) is None:
+                    continue
 
-                    # add label, mapping between tag and repo
-                    label_item_key = cache_key_delimiter.join([label_key, tag.name])
-                    pipe.zadd(label_item_key, repo.name, repo.downloads)
+                # update mapping between tag and repo
+                label_item_key = cache_key_delimiter.join([label_key, tag.name])
+                pipe.zadd(label_item_key, repo.downloads, repo.name).execute()
 
-            if not tags_in_cache:
-                continue
-
-            # only add repo, if one of the tag is in cache
             key = cache_key_delimiter.join([repo_key, repo.name])
             pipe.hmset(
                 key, {
                     'description': repo.description,
-                    'uri': repo.uri
+                    'uri': repo.uri,
+                    'tags': [tag.name for tag in repo.labels]
                 }
-            )
-
-            pipe.execute()
+            ).execute()
 
 
-def get_repos(redis, cache_key, tags):
+def get_repos_from_tags(redis, cache_key, tags=None):
+    tags = tags or [name for name, download in get_tags(redis, cache_key, tags)[0]]
+
     label_key = cache_key_delimiter.join([cache_key, 'labels'])
     repo_key = cache_key_delimiter.join([cache_key, 'repos'])
-    tag_key = cache_key_delimiter.join([cache_key, 'tags'])
 
     non_cached_tags = []
     result = []
+
     with redis.pipeline() as pipe:
         # get repos per tag basis
-        # use list to maintain the order
         repos = []
         for tag in tags:
             label_item_key = cache_key_delimiter.join([label_key, tag])
-            repos_per_tag = pipe.zrevrangebyscore(
-                label_item_key, '+inf', 0, withscores=True).execute()
-            repos_per_tag = repos_per_tag[0]
+
+            repos_per_tag = []
+            if pipe.exists(label_item_key).execute()[0]:
+                repos_per_tag = pipe.zrevrangebyscore(
+                    label_item_key, '+inf', 0, withscores=True).execute()[0]
 
             # if tag doesn't exists in cache
             # skip it and eventually get its result from db
@@ -98,7 +120,6 @@ def get_repos(redis, cache_key, tags):
                 non_cached_tags.append(tag)
 
         for repo, downloads in repos:
-            repo = repo.decode()
             repo_item_key = cache_key_delimiter.join([repo_key, repo])
 
             if not pipe.exists(repo_item_key).execute()[0]:
@@ -113,3 +134,8 @@ def get_repos(redis, cache_key, tags):
         pipe.execute()
 
     return result, non_cached_tags
+
+
+def get_repo_details(redis, cache_key, repo):
+    key = cache_key_delimiter.join([cache_key, 'repos', repo])
+    return redis.hgetall(key)
