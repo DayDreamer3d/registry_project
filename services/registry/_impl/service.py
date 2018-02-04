@@ -122,8 +122,9 @@ class RegistryService(_base.BaseService):
 
         added_repos = _query.add_repos(self.session, repos)
 
+        repo_names = [repo.name for repo in added_repos]
         logger.info(
-            'Repos({}) added to db.'.format(added_repos),
+            'Repos({}) added to db.'.format(repo_names),
         )
 
         if added_repos:
@@ -132,8 +133,9 @@ class RegistryService(_base.BaseService):
                     only_update=True
                 )
 
+                repo_names = [repo.name for repo in added_repos]
                 logger.info(
-                    'Repos({}) added to cache.'.format(added_repos),
+                    'Repos({}) added to cache.'.format(repo_names),
                 )
             except Exception:
                 logger.error(
@@ -149,8 +151,11 @@ class RegistryService(_base.BaseService):
         cached_repos, non_cached_tags = _cache.get_repos_from_tags(
             self.redis,
             config['CACHE']['KEY'],
-            tags
+            tags,
         )
+
+        for c_repo in cached_repos:
+            c_repo['tags'] = eval(c_repo['tags'])
 
         logger.info(
             'Repos({}) fetched from cache.\n Tags({}) are not in cache'.format(cached_repos, non_cached_tags)
@@ -168,7 +173,7 @@ class RegistryService(_base.BaseService):
 
         # update cache with non cached tag results
         if db_repos:
-            _cache.add_repos(self.redis, config['CACHE']['KEY'], db_repos)
+            _cache.add_repos(self.redis, config['CACHE']['KEY'], db_repos, force=True)
             logger.info(
                 'Repos({}) added to cache.'.format(db_repo_names)
             )
@@ -187,10 +192,19 @@ class RegistryService(_base.BaseService):
             for repo in db_repos
         ]
 
-        repos = cached_repos + db_repos
+        repos = cached_repos
+        cached_names = [c_name['name'] for c_name in cached_repos]
+        for repo in db_repos:
+            if repo['name'] not in cached_names:
+                repos.append(repo)
 
         if repos:
             self.update_downloads([repo['name'] for repo in repos])
+
+        repo_names = [repo['name'] for repo in repos]
+        logger.info(
+            'Result: Repos({}).'.format(repo_names)
+        )
 
         return repos
 
@@ -207,23 +221,24 @@ class RegistryService(_base.BaseService):
             )
 
         if result:
+            logger.info('Repo({}) details fetched from cache.'.format(result))
+            result['tags'] = eval(result['tags'])
             return result
 
         repo_details = _query.get_repo_details(self.session, repo)
 
         if not repo_details:
-            logger.debug('No detail found for Repo({}).'.format(repo_details))
             return repo_details
 
         _cache.add_repos(self.redis, config['CACHE']['KEY'], [repo_details])
-        logger.debug('Repo({}) added to cache.'.format(repo))
+        logger.info('Repo({}) added to cache.'.format(repo))
 
         return {
-            'name': repo.name,
-            'tags': [tag.name for tag in repo.labels],
-            'description': repo.description,
-            'downloads': repo.downloads,
-            'uri': repo.uri,
+            'name': repo_details.name,
+            'tags': [tag.name for tag in repo_details.labels],
+            'description': repo_details.description,
+            'downloads': repo_details.downloads,
+            'uri': repo_details.uri,
         }
 
     @rpc.rpc

@@ -59,8 +59,9 @@ def get_tags(redis, cache_key, tags):
             return cached_tags, []
 
 
-def add_repos(redis, cache_key, repos, only_update=False):
-    logger.debug('Repos to be added to cache are: {}.'.format(repos))
+def add_repos(redis, cache_key, repos, force=False):
+    repo_names = [repo for repo in repos]
+    logger.debug('Repos to be added to cache are: {}.'.format(repo_names))
 
     label_key = cache_key_delimiter.join([cache_key, 'labels'])
     repo_key = cache_key_delimiter.join([cache_key, 'repos'])
@@ -74,6 +75,7 @@ def add_repos(redis, cache_key, repos, only_update=False):
                 logger.warn('{} Repo can not be added to cache. No tags are found.'.format(repo))
                 continue
 
+            add_repo_details = force or False
             for tag in repo.labels:
                 # update popularity for tag (not labels)
                 pipe.zincrby(tag_key, tag.name).execute()
@@ -86,32 +88,36 @@ def add_repos(redis, cache_key, repos, only_update=False):
 
                 # only add repo if that tag is present in the cache
                 # it's an update strategy to keep the cache fresh for a particular tag
-                if only_update and redis.zscore(label_key, tag.name) is None:
+                label_item_key = cache_key_delimiter.join([label_key, tag.name])
+
+                if not redis.exists(label_item_key):
                     logger.debug('For Repo({}), Tag({}) not found in Label({}) in cache.'.format(repo.name, tag.name, label_key))
                     continue
 
+                add_repo_details = True
+
                 # update mapping between tag and repo
-                label_item_key = cache_key_delimiter.join([label_key, tag.name])
                 pipe.zadd(label_item_key, repo.downloads, repo.name).execute()
 
-                logger.debug('For Repo({}) added to the cache under Label({}) key.'.format(repo.name, tag.name, label_item_key))
+                logger.debug('For Repo({}) added to the cache under Label({}) key.'.format(repo.name, label_item_key))
 
-            key = cache_key_delimiter.join([repo_key, repo.name])
-            pipe.hmset(
-                key, {
-                    'description': repo.description,
-                    'uri': repo.uri,
-                    'tags': [tag.name for tag in repo.labels]
-                }
-            ).execute()
+            if add_repo_details:
+                key = cache_key_delimiter.join([repo_key, repo.name])
+                pipe.hmset(
+                    key, {
+                        'description': repo.description,
+                        'uri': repo.uri,
+                        'tags': [tag.name for tag in repo.labels]
+                    }
+                ).execute()
 
-            logger.debug('For Repo({}) hash added to cache.'.format(repo.name))
+                logger.debug('Repo({}) details hash added to cache.'.format(repo.name))
 
 
 def get_repos_from_tags(redis, cache_key, tags=None):
     tags = tags or [name for name, download in get_tags(redis, cache_key, tags)[0]]
 
-    logger.debug('Tags({}) would be used to retrieve associated repos.'.format(tags,))
+    logger.debug('Get the repos for Tags({}) from cache.'.format(tags))
 
     label_key = cache_key_delimiter.join([cache_key, 'labels'])
     repo_key = cache_key_delimiter.join([cache_key, 'repos'])
@@ -123,6 +129,7 @@ def get_repos_from_tags(redis, cache_key, tags=None):
         # get repos per tag basis
         repos = []
         for tag in tags:
+
             label_item_key = cache_key_delimiter.join([label_key, tag])
 
             repos_per_tag = []
@@ -130,8 +137,8 @@ def get_repos_from_tags(redis, cache_key, tags=None):
                 repos_per_tag = pipe.zrevrangebyscore(
                     label_item_key, '+inf', 0, withscores=True).execute()[0]
 
-                repo_names = [repo.name for repo in repos]
-                logger.debug('Repos({}) for Tag({}).'.format(repo_names, tag))
+                repo_names = [repo[0] for repo in repos_per_tag]
+                logger.debug('Repos({}) under Label({}).'.format(repo_names, label_item_key))
 
             # if tag doesn't exists in cache
             # skip it and eventually get its result from db
@@ -155,9 +162,9 @@ def get_repos_from_tags(redis, cache_key, tags=None):
             })
             result.append(repo_item)
 
-            logger.debug('Repos({}) added in cache.'.format(repo_item_key))
-
         pipe.execute()
+
+    logger.debug('Repos({}) added in cache. Non Cahed Tags({})'.format(result, non_cached_tags))
 
     return result, non_cached_tags
 
@@ -165,5 +172,8 @@ def get_repos_from_tags(redis, cache_key, tags=None):
 def get_repo_details(redis, cache_key, repo):
     key = cache_key_delimiter.join([cache_key, 'repos', repo])
     details = redis.hgetall(key)
-    logger.debug('Repo({}) details are : {}.'.format(repo, details))
+
+    if details:
+        logger.debug('Repo({}) Details({}) are fetched from cache.'.format(repo, details))
+
     return details

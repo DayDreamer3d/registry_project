@@ -98,13 +98,13 @@ if __name__ == '__main__':
     create_db()
 
     # create service container
-    container = service.create_container()
+    # container = service.create_container()
 
     # starting the service will create the tables
-    container.start()
+    # container.start()
 
     # insert the data
     # insert_data()
 
     # keep the service running
-    container.wait()
+    # container.wait()
