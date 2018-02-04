@@ -1,8 +1,3 @@
-import collections
-# import redis
-
-# from nameko_redis import Redis
-
 # TODO: add this into config
 cache_key_delimiter = ':'
 
