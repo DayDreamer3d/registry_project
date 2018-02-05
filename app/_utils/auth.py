@@ -44,12 +44,18 @@ def validate_client_key(client_key, ttl=86400):
 def validate_client(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        client_key = flask.request.args.get('client-key')
+        client_key = kwargs.get('client_key', flask.request.args.get('client-key'))
+
         if not (client_key and validate_client_key(client_key)):
+            # if client_key in kwargs that means it's coming from user-agent
+            # in that case, don't send the response just the validating result
+            if 'client_key' in kwargs:
+                kwargs['client_key'] = None
+                return func(*args, **kwargs)
             response = {
                 'error': 'unauthorised',
                 'message': 'Unauthorised client. Please generate new Client Key.',
-                'key-generator-url': '{}/auth/client-key'.format(flask.url_for('api_home'))
+                'client-key-url': '{}/auth/client-key'.format(flask.url_for('api_home'))
             }
             return flask.make_response(
                 flask.jsonify(response),
@@ -59,5 +65,6 @@ def validate_client(func):
                     'Location': '{}/auth/client-key'.format(flask.url_for('api_home'))
                 }
             )
+
         return func(*args, **kwargs)
     return wrapper

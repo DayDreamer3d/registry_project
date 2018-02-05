@@ -1,0 +1,31 @@
+{% macro card(r) -%}
+<div class = "wide-card mdl-card mdl-shadow--4dp">
+    <div class = "mdl-card__title">
+        <h2 class = "mdl-card__title-text">{{ r['name'] }} ({{ r['uri'] }})</h2>
+    </div>
+    <div class = "mdl-card__supporting-text">
+        {{ r['description'] }}
+    </div>
+    <div>
+        {% for name in r['tags'] -%}
+        <span class="mdl-chip">
+            <span class="mdl-chip__text">{{ name }}</span>
+        </span>
+        {% endfor -%}
+    </div>
+    <div class = "mdl-card__actions mdl-card--border">
+    <a class = "mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
+        <i class = "material-icons">file_download</i>
+        DOWNLOAD
+    </a>
+    </div>
+
+    <div class = "mdl-card__menu">
+    <span>
+      <i class = "material-icons">file_download</i>
+    </span>
+    <span>{{ r['downloads'] }}</span>
+    </div>
+</div>
+{{ caller() -}}
+{% endmacro -%}

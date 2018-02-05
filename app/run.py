@@ -1,3 +1,4 @@
+import functools
 import flask
 import flask_nameko
 from urllib import parse
@@ -13,11 +14,34 @@ app.config['NAMEKO_AMQP_URI'] = config['NAMEKO_AMQP_URI']
 
 rpc.init_app(app)
 
+# TODO: use Blueprint for different routes
 
-# TODO: use cache here of redis
+
+def client_key_from_cookie(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        cookie_key = 'software-registry-client-key'
+        client_key = flask.request.cookies.get(cookie_key)
+        kwargs['client_key'] = client_key
+        return func(*args, **kwargs)
+    return wrapper
+
+
 @app.route('/', methods=['GET', 'POST'])
-def index():
-    return 'Yeah !!'
+@client_key_from_cookie
+@auth.validate_client
+def index(client_key=None):
+    response = flask.make_response('Test cookie: {}'.format(client_key))
+    if not client_key:
+        client_key = auth.add_client_key()
+
+    response = flask.make_response(
+        flask.render_template('index.html', tags=tags, repos=repos)
+    )
+
+    response.set_cookie('software-registry-client-key', client_key)
+
+    return response
 
 
 @app.route('/api', methods=['GET'])
@@ -28,6 +52,7 @@ def api_home():
         '{}-url'.format(resource): '{}/{}'.format(api_home_url, resource)
         for resource in resources
     }
+    response['client-key-url'] = '{}/auth/client-key'.format(flask.url_for('api_home'))
     return flask.jsonify(response)
 
 
@@ -102,7 +127,6 @@ def add_tag():
     try:
         name = flask.request.get_json(force=True)
     except Exception as e:
-        # TODO: log exception
         response = {
             'error': 'malformed request',
             'message': 'Request body is not json serialisable. Use a json object with name field e.g. {"name": "tag name"}',
@@ -154,7 +178,6 @@ def add_repo():
     try:
         repo = flask.request.get_json(force=True)
     except Exception as e:
-        # TODO: log exception
         keys_str = ', '.join(required_keys)
         response = {
             'error': 'malformed request',

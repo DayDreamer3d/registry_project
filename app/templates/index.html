@@ -1,0 +1,35 @@
+{% extends "base.html" -%}
+{% import "macros/repo.html" as repo -%}
+
+{% block main_body -%}
+
+<main class = "mdl-layout__content">  
+
+<div class="mdl-grid">
+
+    <div class = "mdl-cell mdl-cell--12-col">
+        {% for name in tags -%}
+        <span class="mdl-chip mdl-chip--deletable">
+            <span class="mdl-chip__text">{{ name }}</span>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="list-checkbox-{{ loop.index }}">
+              <input type="checkbox" id="list-checkbox-{{ loop.index }}" class="mdl-checkbox__input"/>
+            </label>
+        </span>
+        {% endfor -%}
+        <button class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
+            <i class = "material-icons">search</i>
+        </button>
+    </div>
+
+</div>
+
+<div class="mdl-grid">
+    {% for repo_detail in repos -%}
+        {% call repo.card(repo_detail) -%}
+        {% endcall -%}
+    {% endfor -%}
+</div>
+
+</main>  
+
+{% endblock -%}
