@@ -173,7 +173,9 @@ class RegistryService(_base.BaseService):
 
         # update cache with non cached tag results
         if db_repos:
-            _cache.add_repos(self.redis, config['CACHE']['KEY'], db_repos, force=True)
+            # only add repos those belongs to asked tags
+            # non_cached_repos = [for tag in tags for repo in repos if tag in repo.labels]
+            _cache.add_repos(self.redis, config['CACHE']['KEY'], db_repos, force=True, tags=tags)
             logger.info(
                 'Repos({}) added to cache.'.format(db_repo_names)
             )

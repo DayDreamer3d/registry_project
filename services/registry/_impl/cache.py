@@ -57,8 +57,9 @@ def get_tags(redis, cache_key, tags):
             return cached_tags, []
 
 
-def add_repos(redis, cache_key, repos, force=False):
+def add_repos(redis, cache_key, repos, tags=None, force=False):
     repo_names = [repo for repo in repos]
+    tags = tags or []
     logger.debug('Repos to be added to cache are: {}.'.format(repo_names))
 
     label_key = cache_key_delimiter.join([cache_key, 'labels'])
@@ -78,6 +79,11 @@ def add_repos(redis, cache_key, repos, force=False):
                 # update popularity for tag (not labels)
                 pipe.zincrby(tag_key, tag.name).execute()
 
+                # if current repo tag in asked tags
+                # then only update labels
+                if tags and tag.name not in tags:
+                    continue
+
                 # intenionally using redis than pipeline
                 # because pipeline will buffer the below commands
                 # and will execute the first buffered command here
@@ -88,7 +94,7 @@ def add_repos(redis, cache_key, repos, force=False):
                 # it's an update strategy to keep the cache fresh for a particular tag
                 label_item_key = cache_key_delimiter.join([label_key, tag.name])
 
-                if not redis.exists(label_item_key):
+                if not force and not redis.exists(label_item_key):
                     logger.debug('For Repo({}), Tag({}) not found in Label({}) in cache.'.format(repo.name, tag.name, label_key))
                     continue
 
