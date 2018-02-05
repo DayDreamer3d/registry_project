@@ -7,7 +7,7 @@
 
 <div class="mdl-grid">
 
-    <div class = "mdl-cell mdl-cell--12-col">
+    <div id="tags_container" class = "mdl-cell mdl-cell--12-col">
         {% for name in tags -%}
         <span class="mdl-chip mdl-chip--deletable">
             <span class="mdl-chip__text">{{ name }}</span>
@@ -16,7 +16,7 @@
             </label>
         </span>
         {% endfor -%}
-        <button class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
+        <button id="search_repos" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
             <i class = "material-icons">search</i>
         </button>
     </div>

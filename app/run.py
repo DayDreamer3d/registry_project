@@ -35,8 +35,10 @@ def index(client_key=None):
     if not client_key:
         client_key = auth.add_client_key()
 
+    tags = [name for name, _ in rpc.registry.get_tags()]
+
     response = flask.make_response(
-        flask.render_template('index.html', tags=tags, repos=repos)
+        flask.render_template('index.html', tags=tags, repos=[])
     )
 
     response.set_cookie('software-registry-client-key', client_key)
@@ -214,7 +216,7 @@ def add_repo():
 
     response = {
         'message': '"{}" repo has been created.'.format(name),
-        'new-tag-url': repo_url
+        'new-repo-url': repo_url
     }
     return flask.make_response(
         flask.jsonify(response),

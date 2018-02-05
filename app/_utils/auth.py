@@ -10,6 +10,7 @@ config = config.get_config()
 
 def add_client_key():
     redis_server = redis.StrictRedis.from_url(config['REDIS_URIS']['app'])
+
     key = config['CACHE']['DELIMITER'].join([
         config['CACHE']['KEY'],
         'client',
@@ -22,7 +23,6 @@ def add_client_key():
 
 def validate_client_key(client_key, ttl=86400):
     redis_server = redis.StrictRedis.from_url(config['REDIS_URIS']['app'])
-
     key = config['CACHE']['DELIMITER'].join([
         config['CACHE']['KEY'],
         'client'
