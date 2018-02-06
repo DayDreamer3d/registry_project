@@ -27,8 +27,8 @@ service_name = 'registry'
 config = _config.get_config(service_name)
 logger = _log.create_file_logger(
     service_name,
-    config['LOG']['LEVEL'],
-    _log.create_log_file(config['LOG']['DIR'], service_name),
+    config['LOGGING']['LEVEL'],
+    _log.create_log_file(config['LOGGING']['DIR'], service_name),
 )
 
 
@@ -129,9 +129,7 @@ class RegistryService(_base.BaseService):
 
         if added_repos:
             try:
-                _cache.add_repos(self.redis, config['CACHE']['KEY'], added_repos,
-                    only_update=True
-                )
+                _cache.update_repos(self.redis, config['CACHE']['KEY'], added_repos)
 
                 repo_names = [repo.name for repo in added_repos]
                 logger.info(
@@ -139,13 +137,16 @@ class RegistryService(_base.BaseService):
                 )
             except Exception:
                 logger.error(
-                    'Exception occurred while adding to cache.',
+                    'Exception occurred while updating Repos() to cache.'.format(repo_names),
                     exc_info=True
                 )
 
     @rpc.rpc
     def get_repos(self, tags=None):
         tags = tags or []
+
+        if tags:
+            _query.update_popularity(self.session, tags)
 
         # fetch from cache
         cached_repos, non_cached_tags = _cache.get_repos_from_tags(
@@ -171,17 +172,20 @@ class RegistryService(_base.BaseService):
             'Repos({}) fetched from db.'.format(db_repo_names)
         )
 
-        # update cache with non cached tag results
         if db_repos:
-            # only add repos those belongs to asked tags
-            # non_cached_repos = [for tag in tags for repo in repos if tag in repo.labels]
-            _cache.add_repos(self.redis, config['CACHE']['KEY'], db_repos, force=True, tags=tags)
-            logger.info(
-                'Repos({}) added to cache.'.format(db_repo_names)
-            )
-
-        if tags:
-            _query.update_popularity(self.session, tags)
+            # only add repos which belong to queried tags.
+            # tags = cached + non cached tags as there could be repos
+            # which belongs to cached tags and are not yet in cache.
+            try:
+                _cache.add_repos(self.redis, config['CACHE']['KEY'], tags, db_repos)
+                logger.info(
+                    'Repos({}) added to cache.'.format(db_repo_names)
+                )
+            except Exception:
+                logger.error(
+                    'Exception occurred while adding Repos({}) to cache.'.format(db_repo_names),
+                    exc_info=True
+                )
 
         db_repos = [
             {
@@ -200,10 +204,11 @@ class RegistryService(_base.BaseService):
             if repo['name'] not in cached_names:
                 repos.append(repo)
 
-        if repos:
-            self.update_downloads([repo['name'] for repo in repos])
-
         repo_names = [repo['name'] for repo in repos]
+
+        if repo_names:
+            self.update_downloads(repo_names)
+
         logger.info(
             'Result: Repos({}).'.format(repo_names)
         )

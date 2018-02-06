@@ -6,6 +6,7 @@ cache_key_delimiter = ':'
 # REVIEW: what about having cache as a service
 
 # TODO: these cache functions could be in class.
+# TODO: refactor the code for this module, IMP: try better pipeling for redsis.
 
 service_name = 'registry'
 logger = logging.getLogger('services_{}'.format(service_name))
@@ -57,65 +58,89 @@ def get_tags(redis, cache_key, tags):
             return cached_tags, []
 
 
-def add_repos(redis, cache_key, repos, tags=None, force=False):
+def update_repos(redis, cache_key, repos):
     repo_names = [repo for repo in repos]
-    tags = tags or []
-    logger.debug('Repos to be added to cache are: {}.'.format(repo_names))
 
     label_key = cache_key_delimiter.join([cache_key, 'labels'])
     repo_key = cache_key_delimiter.join([cache_key, 'repos'])
     tag_key = cache_key_delimiter.join([cache_key, 'tags'])
 
-    # search how many tags are in cache
     with redis.pipeline() as pipe:
+        repos_to_add = []
+        labels_to_add = []
+
         for repo in repos:
 
-            if not repo.labels:
-                logger.warn('{} Repo can not be added to cache. No tags are found.'.format(repo))
-                continue
+            label_names = []
 
-            add_repo_details = force or False
             for tag in repo.labels:
-                # update popularity for tag (not labels)
-                pipe.zincrby(tag_key, tag.name).execute()
+                pipe.zadd(tag_key, 0, tag.name)
+                label_names.append(tag.name)
 
-                # if current repo tag in asked tags
-                # then only update labels
-                if tags and tag.name not in tags:
+            pipe.execute()
+
+            for label in label_names:
+                # add the repo iff this tag exists in labels.
+                label_item_key = cache_key_delimiter.join([label_key, label])
+                if not pipe.exists(label_item_key).execute()[0]:
                     continue
 
-                # intenionally using redis than pipeline
-                # because pipeline will buffer the below commands
-                # and will execute the first buffered command here
-                # which would give the undesired result
-                # TODO: look deep in pipelining and find solution
+                labels_to_add.append([label_item_key, repo.downloads, repo.name])
 
-                # only add repo if that tag is present in the cache
-                # it's an update strategy to keep the cache fresh for a particular tag
-                label_item_key = cache_key_delimiter.join([label_key, tag.name])
-
-                if not force and not redis.exists(label_item_key):
-                    logger.debug('For Repo({}), Tag({}) not found in Label({}) in cache.'.format(repo.name, tag.name, label_key))
+                repo_item_key = cache_key_delimiter.join([repo_key, repo.name])
+                if pipe.exists(repo_item_key).execute()[0]:
                     continue
 
-                add_repo_details = True
+                repos_to_add = [{
+                    'name': repo.name,
+                    'description': repo.description,
+                    'uri': repo.uri,
+                    'tags': label_names
+                }]
 
-                # update mapping between tag and repo
-                pipe.zadd(label_item_key, repo.downloads, repo.name).execute()
+        for repo in repos_to_add:
+            key = cache_key_delimiter.join([repo_key, repo.pop('name')])
+            pipe.hmset(key, repo)
 
-                logger.debug('For Repo({}) added to the cache under Label({}) key.'.format(repo.name, label_item_key))
+        for label in labels_to_add:
+            pipe.zadd(*label)
 
-            if add_repo_details:
-                key = cache_key_delimiter.join([repo_key, repo.name])
-                pipe.hmset(
-                    key, {
-                        'description': repo.description,
-                        'uri': repo.uri,
-                        'tags': [tag.name for tag in repo.labels]
-                    }
-                ).execute()
+        pipe.execute()
 
-                logger.debug('Repo({}) details hash added to cache.'.format(repo.name))
+    logger.debug('Labels({}) are added to cache.'.format([label[0] for label in labels_to_add]))
+    logger.debug('Repos({}) added to cache.'.format(repo_names))
+
+
+def add_repos(redis, cache_key, tags, repos):
+    tags = tags or []
+    repos = repos or []
+
+    label_key = cache_key_delimiter.join([cache_key, 'labels'])
+    repo_key = cache_key_delimiter.join([cache_key, 'repos'])
+    tag_key = cache_key_delimiter.join([cache_key, 'tags'])
+
+    with redis.pipeline() as pipe:
+        # increment the popularity of tags
+        for tag in tags:
+            pipe.zincrby(tag_key, tag)
+
+        # TODO: use itertools if you can
+        for repo in repos:
+            labels = [label.name for label in repo.labels]
+            to_update_tags = set(labels).intersection(tags)
+
+            for tag in to_update_tags:
+                label_item_key = cache_key_delimiter.join([label_key, tag])
+                pipe.zadd(label_item_key, repo.downloads, repo.name)
+
+            key = cache_key_delimiter.join([repo_key, repo.name])
+            pipe.hmset(key, {
+                'description': repo.description,
+                'uri': repo.uri,
+                'tags': [tag.name for tag in repo.labels]
+            })
+
+        pipe.execute()
 
 
 def get_repos_from_tags(redis, cache_key, tags=None):

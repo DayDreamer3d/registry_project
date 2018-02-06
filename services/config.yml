@@ -1,4 +1,4 @@
-LOG:
+LOGGING:
     LEVEL: DEBUG
     DIR: 'D:/temp/var/log/software_registry/services'
 
