@@ -228,7 +228,7 @@ class RegistryService(_base.BaseService):
             )
 
         if result:
-            logger.info('Repo({}) details fetched from cache.'.format(result))
+            logger.info('Repo({}) details fetched from cache.'.format(repo))
             result['tags'] = eval(result['tags'])
             return result
 
@@ -237,9 +237,11 @@ class RegistryService(_base.BaseService):
         if not repo_details:
             return repo_details
 
-        _cache.add_repos(self.redis, config['CACHE']['KEY'], [repo_details])
+        _cache.update_repos(self.redis, config['CACHE']['KEY'], [repo_details])
         logger.info('Repo({}) added to cache.'.format(repo))
 
+        # TODO: there are other places where same dict of repo details are getting used.
+        # should be a skeleton dict and reference it here to fill the values.
         return {
             'name': repo_details.name,
             'tags': [tag.name for tag in repo_details.labels],

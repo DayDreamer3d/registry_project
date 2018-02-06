@@ -23,7 +23,7 @@ def add_tags(redis, cache_key, tags):
     with redis.pipeline() as pipe:
         pipe.zadd(key, *items).execute()
 
-        logger.debug('{} tags are added to cache.'.format(tags))
+        logger.debug('Tags({}) tags are added to cache.'.format(tags))
 
 
 def get_tags(redis, cache_key, tags):
@@ -91,15 +91,16 @@ def update_repos(redis, cache_key, repos):
                 if pipe.exists(repo_item_key).execute()[0]:
                     continue
 
-                repos_to_add = [{
+                repos_to_add.append({
                     'name': repo.name,
                     'description': repo.description,
                     'uri': repo.uri,
-                    'tags': label_names
-                }]
+                    'tags': label_names,
+                    'downloads': repo.downloads
+                })
 
         for repo in repos_to_add:
-            key = cache_key_delimiter.join([repo_key, repo.pop('name')])
+            key = cache_key_delimiter.join([repo_key, repo['name']])
             pipe.hmset(key, repo)
 
         for label in labels_to_add:
@@ -135,9 +136,11 @@ def add_repos(redis, cache_key, tags, repos):
 
             key = cache_key_delimiter.join([repo_key, repo.name])
             pipe.hmset(key, {
+                'name': repo.name,
                 'description': repo.description,
                 'uri': repo.uri,
-                'tags': [tag.name for tag in repo.labels]
+                'tags': labels,
+                'downloads': repo.downloads
             })
 
         pipe.execute()
