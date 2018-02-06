@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+    webserver:
+        image: softreg-nginx:v1
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+    msg_queue:
+        image: rabbitmq:3-management
+        ports:
+            - 5672:5672
+            - 15672:15672
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+    cache:
+        image: redis:latest
+        ports:
+            - 6379:6379
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+    app:
+        image: softreg-app:v1
+        ports:
+            - 4000:4000
+        depends_on:
+            - webserver
+            - msg_queue
+            - cache
+        deploy:
+            replicas: 2
+            restart_policy:
+                condition: on-failure

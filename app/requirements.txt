@@ -1,4 +1,5 @@
 Flask
+flask_nameko
 gunicorn
 nameko
-flask_nameko
+redis
