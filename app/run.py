@@ -226,14 +226,18 @@ def add_repo():
 
 
 def get_repos():
+    tags = flask.request.args.getlist('tag')
+
     repos = {
         repo['name']: parse.quote('/'.join([flask.url_for('repos'), repo['name']]))
-        for repo in rpc.registry.get_repos(flask.request.args.getlist('tag'))
+        for repo in rpc.registry.get_repos(tags)
     }
-    return flask.jsonify({
-        'repo-urls': repos,
-        'tags-query-example': '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos')),
-    })
+
+    response = {'repo-urls': repos}
+    if not tags:
+        response['tags-query-example'] = '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos'))
+
+    return flask.jsonify(response)
 
 
 if __name__ == '__main__':
