@@ -15,15 +15,20 @@ function attach_search_event() {
 
          tags_str = tags_str.slice(0, -1);
 
-         var url = 'http://127.0.0.1:5000/api/repos?client-key=' + client_key + tags_str + '/jsonp?callback=?';
+         var url = 'http://127.0.0.1:5000/api/repos?client-key=' + client_key + tags_str;
          alert(url);
          $.ajax({
              url: url,
+             type: 'GET',
              dataType: 'jsonp',
+             jsonpCallback: 'processJSONPResponse',
+             contentType: "application/json; charset=utf-8",
              complete: function(data, status, jqXHR) {
-                 alert(data);
+                 console.log(data);
              },
-             error: function(xhr, ajaxOptions, thrownError) { alert(xhr.responseText)}
+             error: function(xhr, ajaxOptions, thrownError) {
+                 console.log(xhr.responseText);
+             }
          });
      });
 }
