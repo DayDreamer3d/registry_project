@@ -1,10 +1,10 @@
 import contextlib
-from nameko_sqlalchemy import database
+import nameko_sqlalchemy
 import sqlalchemy
 import sqlalchemy_utils
 
 
-class DbSession(database.Session):
+class DbSession(nameko_sqlalchemy.Session):
     def setup(self):
         super().setup()
         self.declarative_base.metadata.create_all(self.engine)

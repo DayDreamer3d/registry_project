@@ -1,6 +1,6 @@
 nameko
 nameko-redis
-nameko-sqlalchemy
+nameko-sqlalchemy==0.1.0
 PyMySQL
 sqlalchemy_utils
 logstash_formatter

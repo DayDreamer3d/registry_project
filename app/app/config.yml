@@ -4,7 +4,7 @@ LOGGING:
     LEVEL: 'debug'
 
 REDIS_URIS:
-    app: 'redis://softreg_webserver:6379/0'
+    app: 'redis://127.0.0.1:6379/0'
     development: 'redis://127.0.0.1:6379/0'
 
 CACHE:
@@ -12,4 +12,4 @@ CACHE:
     KEY: 'software_registry:app'
     DELIMITER: ':'
 
-NAMEKO_AMQP_URI: 'amqp://softreg_msg_queue'
+NAMEKO_AMQP_URI: 'amqp://localhost'
