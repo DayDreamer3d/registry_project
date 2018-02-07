@@ -35,7 +35,7 @@ services:
             restart_policy:
                 condition: on-failure
     app:
-        image: softreg-app:v1
+        image: daydreamer/softreg-app:v1
         ports:
             - 5000:5000
         deploy:
@@ -43,7 +43,7 @@ services:
             restart_policy:
                 condition: on-failure
     registry_service:
-        image: softreg-registry-service:v1
+        image: daydreamer/softreg-registry-service:v1
         deploy:
             replicas: 2
             restart_policy:
