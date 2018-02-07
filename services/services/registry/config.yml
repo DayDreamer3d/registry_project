@@ -1,3 +1,7 @@
+LOGGING:
+    LEVEL: 'DEBUG'
+    DIR: '/var/log/software_registry/services'
+
 CACHE:
     LAYER: 'services'
     KEY: 'software_registry:services:registry'
@@ -5,4 +9,4 @@ CACHE:
 INSTANCES: 3
 
 DB_URIS:
-    'registry:Base': 'mysql+pymysql://root:1234@127.0.0.1:3306/registry'
+    'registry:Base': 'mysql+pymysql://root:1234@db:3306/registry'

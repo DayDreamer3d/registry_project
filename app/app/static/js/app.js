@@ -15,7 +15,7 @@ function attach_search_event() {
 
          tags_str = tags_str.slice(0, -1);
 
-         var url = 'http://softreg_webserver/api/repos?client-key=' + client_key + tags_str;
+         var url = 'http://webserver/api/repos?client-key=' + client_key + tags_str;
          $.getJSON({
                  url: url,
                  type: 'GET',

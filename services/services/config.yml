@@ -1,9 +1,8 @@
 LOGGING:
     LEVEL: DEBUG
-    DIR: 'D:/temp/var/log/software_registry/services'
 
-AMQP_URI: 'amqp://localhost'
+AMQP_URI: 'amqp://msg_queue'
 
 REDIS_URIS:
-    services: 'redis://127.0.0.1:6379/1'
+    services: 'redis://cache:6379/1'
     development: 'redis://127.0.0.1:6379/1'
