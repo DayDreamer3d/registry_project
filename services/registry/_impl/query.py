@@ -1,7 +1,5 @@
 import logging
 
-import nameko_sqlalchemy
-
 from . import models as _models
 
 
