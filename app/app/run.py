@@ -329,7 +329,7 @@ def get_repos():
 
     response = {
         'repo_details': repos,
-        'repo_urls': repos
+        'repo_urls': repo_urls
     }
     if not tags:
         response['repo_query_example'] = '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos'))
