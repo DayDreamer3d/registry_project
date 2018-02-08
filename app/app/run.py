@@ -85,10 +85,10 @@ def api_home():
     api_home_url = flask.url_for('api_home')
     resources = ['repos', 'tags']
     response = {
-        '{}-url'.format(resource): '{}/{}'.format(api_home_url, resource)
+        '{}_url'.format(resource): '{}/{}'.format(api_home_url, resource)
         for resource in resources
     }
-    response['client-key-url'] = '{}/auth/client-key'.format(flask.url_for('api_home'))
+    response['client_key_url'] = '{}/auth/client-key'.format(flask.url_for('api_home'))
     return flask.jsonify(response)
 
 
@@ -125,7 +125,7 @@ def get_tag(tag):
     response = {
         'error': 'Not Found',
         'message': '{} tag not found. Visit tags url to get a list of all the valid tags.'.format(tag),
-        'tags-url': flask.url_for('tags')
+        'tags_url': flask.url_for('tags')
     }
     return flask.make_response(
         flask.jsonify(response),
@@ -166,7 +166,7 @@ def get_repo(repo):
     response = {
         'error': 'Not Found',
         'message': '{} repo not found. Visit repos url to get a list of all the valid repos.'.format(tag),
-        'repos-url': flask.url_for('repos')
+        'repos_url': flask.url_for('repos')
     }
     return flask.make_response(
         flask.jsonify(response),
@@ -183,9 +183,9 @@ def generate_client_key():
             Response object: json response with client key.
     """
     response = {
-        'client-key': auth.add_client_key(),
-        'api-home': flask.url_for('api_home'),
-        'client-key-example': '{}/repos?client_key=xxxxx&param="param1"'.format(flask.url_for('api_home'))
+        'client_key': auth.add_client_key(),
+        'api_home': flask.url_for('api_home'),
+        'client_key_example': '{}/repos?client_key=xxxxx&param="param1"'.format(flask.url_for('api_home'))
     }
     return flask.jsonify(response)
 
@@ -227,7 +227,7 @@ def add_tag():
 
     response = {
         'message': '"{}" tag has been created.'.format(name),
-        'new-tag-url': tag_url
+        'new_tag_url': tag_url
     }
     return flask.make_response(
         flask.jsonify(response),
@@ -242,12 +242,19 @@ def get_tags():
         Returns:
             Response object: json response with all urls for the fetched tags.
     """
-    tags = {
+    tags = rpc.registry.get_tags()
+
+    tag_urls = {
         name: parse.quote('/'.join([flask.url_for('tags'), name]))
-        for name, popularity in rpc.registry.get_tags()
+        for name, popularity in tags
     }
-    tags = {'tag-urls': tags}
-    return flask.jsonify(tags)
+
+    response = {
+        'tag_details': tags,
+        'tag_urls': tag_urls
+    }
+
+    return flask.jsonify(response)
 
 
 def add_repo():
@@ -296,7 +303,7 @@ def add_repo():
 
     response = {
         'message': '"{}" repo has been created.'.format(name),
-        'new-repo-url': repo_url
+        'new_repo_url': repo_url
     }
     return flask.make_response(
         flask.jsonify(response),
@@ -313,14 +320,19 @@ def get_repos():
     """
     tags = flask.request.args.getlist('tag')
 
-    repos = {
+    repos = rpc.registry.get_repos(tags)
+
+    repo_urls = {
         repo['name']: parse.quote('/'.join([flask.url_for('repos'), repo['name']]))
-        for repo in rpc.registry.get_repos(tags)
+        for repo in repos
     }
 
-    response = {'repo-urls': repos}
+    response = {
+        'repo_details': repos,
+        'repo_urls': repos
+    }
     if not tags:
-        response['repo-query-example'] = '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos'))
+        response['repo_query_example'] = '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos'))
 
     return flask.jsonify(response)
 
