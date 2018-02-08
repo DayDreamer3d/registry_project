@@ -198,11 +198,10 @@ class RegistryService(_base.BaseService):
             for repo in db_repos
         ]
 
-        repos = cached_repos
-        cached_names = [c_name['name'] for c_name in cached_repos]
-        for repo in db_repos:
-            if repo['name'] not in cached_names:
-                repos.append(repo)
+        # TODO: get unique results from cache
+        repos = cached_repos + db_repos
+
+        repos = list({repo['name']: repo for repo in repos}.values())
 
         repo_names = [repo['name'] for repo in repos]
 
