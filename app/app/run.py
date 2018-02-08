@@ -235,7 +235,7 @@ def get_repos():
 
     response = {'repo-urls': repos}
     if not tags:
-        response['tags-query-example'] = '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos'))
+        response['repo-query-example'] = '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos'))
 
     return flask.jsonify(response)
 

@@ -27,21 +27,21 @@ Api provides endpionts to GET, POST the data to server (no DELETE only construct
 #### 1. Obtain the client key ####
 Please send a `POST` request to `<host-ip>:5000/api/auth/client-key` to obtain the client key.
 
-Result would look like this: ```
+Result would look like this:
 
 #### 2. Visit the api home page ####
 To know about the collection of resources best way to know is to visit this page. It's not too far and have probably the shortest url whihch is `<host-ip>:5000/api?client-key=<client-key>`, it's output would be.
 
     {
-      "client-key-url": "/api/auth/client-key", 
-      "repos-url": "/api/repos", 
+      "client-key-url": "/api/auth/client-key",
+      "repos-url": "/api/repos",
       "tags-url": "/api/tags"
     }
 
 
 #### 3. Add a repository ####
 To add new repos (with tags) we have to send a `POST` request to url `<host-ip>:5000/api/repos?client-key=<client-key>` and a request body containing all fields like
-    
+
     { {
     "name": "usd_dev:v2",
     "description": "Second version of USD in Docker development.",
@@ -52,10 +52,10 @@ To add new repos (with tags) we have to send a `POST` request to url `<host-ip>:
     ]
     }}
 
-resoult would be the url 
+resoult would be the url
 
-### 4. Fetch repositories based on tags###
+### 4. Fetch repositories based on tags ###
 
-To get a repository from a backend we have change the request method to `GET`, add tags as query parameters with the same url `<host-ip>:5000/api/repos?client-key=<client-key>&tag=docker%20usd` 
+To get a repository from a backend we have change the request method to `GET`, add tags as query parameters with the same url `<host-ip>:5000/api/repos?client-key=<client-key>&tag=docker%20usd`
 
 Please don't hesistate in raising an issue and have fun !
