@@ -1,3 +1,6 @@
+""" Caching operations for the service.
+"""
+
 import logging
 
 # TODO: add this into config
@@ -13,6 +16,13 @@ logger = logging.getLogger('services_{}'.format(service_name))
 
 
 def add_tags(redis, cache_key, tags):
+    """ Add the tags to the cache.
+
+        Args:
+            redis (object): redis connection object.
+            cache_key (str): parent key for the cache under which all objects will be written.
+            tags (list): list of tags that would be inserted in cache.
+    """
     key = cache_key_delimiter.join([cache_key, 'tags'])
 
     items = []
@@ -27,6 +37,16 @@ def add_tags(redis, cache_key, tags):
 
 
 def get_tags(redis, cache_key, tags):
+    """ Get the tags from the cache.
+
+        Args:
+            redis (object): redis connection object.
+            cache_key (str): parent key for the cache under which all objects will be searched.
+            tags (list): list of tags that would be fetched from cache.
+
+        Retuns:
+            tuple: pair of tags cached tags and non cached tags.
+    """
     key = cache_key_delimiter.join([cache_key, 'tags'])
 
     logger.debug('Get details for Tag({}) from cache.'.format(tags))
@@ -59,6 +79,14 @@ def get_tags(redis, cache_key, tags):
 
 
 def update_repos(redis, cache_key, repos):
+    """ Update the repositories entries in cache
+        if any of its corresponding tags exist in cache.
+
+        Args:
+            redis (object): redis connection object.
+            cache_key (str): parent key for the cache under which all objects will be updated.
+            repos (list): list of repositories that would be updated in cache.
+    """
     repo_names = [repo for repo in repos]
 
     label_key = cache_key_delimiter.join([cache_key, 'labels'])
@@ -113,6 +141,14 @@ def update_repos(redis, cache_key, repos):
 
 
 def add_repos(redis, cache_key, tags, repos):
+    """ Add the repositories entries in cache.
+
+        Args:
+            redis (object): redis connection object.
+            cache_key (str): parent key for the cache under which all objects will be inserted.
+            tags (list): list of tags that are supplied by client, only add repositores for these tags.
+            repos (list): list of repositories that would be added in cache.
+    """
     tags = tags or []
     repos = repos or []
 
@@ -147,6 +183,16 @@ def add_repos(redis, cache_key, tags, repos):
 
 
 def get_repos_from_tags(redis, cache_key, tags=None):
+    """ Get the repositories from the cache based on given tags.
+
+        Args:
+            redis (object): redis connection object.
+            cache_key (str): parent key for the cache under which all objects will be searched.
+            tags (list): list of tags for which the repositories will be fetched from cache.
+
+        Retuns:
+            tuple: pair of tags cached tags and non cached tags.
+    """
     tags = tags or [name for name, download in get_tags(redis, cache_key, tags)[0]]
 
     logger.debug('Get the repos for Tags({}) from cache.'.format(tags))
@@ -202,6 +248,16 @@ def get_repos_from_tags(redis, cache_key, tags=None):
 
 
 def get_repo_details(redis, cache_key, repo):
+    """ Get the repository details from the cache.
+
+        Args:
+            redis (object): redis connection object.
+            cache_key (str): parent key for the cache under which all objects will be searched.
+            repo (str): name of the repository for which details will be presented.
+
+        Retuns:
+            dict: of details for the repository.
+    """
     key = cache_key_delimiter.join([cache_key, 'repos', repo])
     details = redis.hgetall(key)
 

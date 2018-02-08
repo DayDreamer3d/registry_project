@@ -1,10 +1,12 @@
-""" Base service class.
+""" Module for base service class.
 """
 from nameko import rpc
 from ._utils import config as _config
 
 
 class BaseService(object):
+    """ Base service class.
+    """
     name = None
 
     @rpc.rpc

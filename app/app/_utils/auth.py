@@ -1,3 +1,6 @@
+""" Module for client authorisation.
+"""
+
 import functools
 import flask
 import redis
@@ -9,6 +12,11 @@ config = config.get_config()
 
 
 def add_client_key():
+    """ Add client key to the database (memory).
+
+        Retuns:
+            str: client key's value.
+    """
     redis_server = redis.StrictRedis.from_url(config['REDIS_URIS']['app'])
 
     key = config['CACHE']['DELIMITER'].join([
@@ -22,6 +30,17 @@ def add_client_key():
 
 
 def validate_client_key(client_key, ttl=86400):
+    """ Validate the given client key.
+
+        Args:
+            client_key (str): key needs to be validated.
+
+        Kwargs:
+            ttl (int): time to live for the key in seconds.
+
+        Returns:
+            bool: validation result for the key.
+    """
     redis_server = redis.StrictRedis.from_url(config['REDIS_URIS']['app'])
     key = config['CACHE']['DELIMITER'].join([
         config['CACHE']['KEY'],
@@ -42,8 +61,27 @@ def validate_client_key(client_key, ttl=86400):
 
 
 def validate_client(func):
+    """ Decorator to validate the attached client.
+
+        Args:
+            func: function object
+
+        Returns:
+            function object
+    """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        """ Wrapper function to the actual work.
+
+            Args:
+                args(list): all the required arguments.
+
+            Kwargs:
+                kwargs(dict): all the keyword arguments.
+
+            Returns:
+                output of the wrapped function.
+        """
         client_key = kwargs.get('client_key', flask.request.args.get('client-key'))
 
         if not (client_key and validate_client_key(client_key)):

@@ -1,4 +1,4 @@
-""" Service sntrypoint for docker compose which also act as a bootstrap for db
+""" Service entrypoint for docker compose which also act as a bootstrap for service.
 """
 
 import random
@@ -11,11 +11,17 @@ from ._impl import service, models
 
 
 def create_db():
+    """ Create the database for the service on db server.
+    """
     # create the db, sqlachemy doesn't create db
     db.create_db(service.config['DB_URIS']['registry:Base'])
 
 
 def insert_data():
+    """ Insert the initial data for the service.
+
+        NOT IN USE.
+    """
     # TODO: use service calls to add the data
     repos = [
         {'alembic-base': {

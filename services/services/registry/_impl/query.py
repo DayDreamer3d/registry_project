@@ -1,3 +1,6 @@
+""" Utility module for all the database related queries.
+"""
+
 import logging
 
 from . import models as _models
@@ -13,6 +16,8 @@ def add_tags(session, tags):
     """ Add the tags to the db.
 
         Args:
+            session (session object): db session object.
+            tags (list): list of tags to be added in db.
     """
     tag_objs = [_models.Tag(name=tag, popularity=1) for tag in tags]
     session.add_all(tag_objs)
@@ -22,9 +27,11 @@ def add_tags(session, tags):
 
 
 def update_popularity(session, tags):
-    """ Update the tags to the db.
+    """ Update the given tags popularity.
 
         Args:
+            session (session object): db session object.
+            tags (list): list of tags to be updated.
     """
     tag_counts = {}
     for tag in tags:
@@ -45,6 +52,12 @@ def get_tags(session, tags=None):
     """ Get the tags from the db.
 
         Args:
+            session (session object): db session object.
+            tags (list): list of tags to be fetched from in db.
+                        None means fetch all tags.
+
+        Returns:
+            (list): list of tags details fetched from db.
     """
     tags = tags or []
     tag_objs = []
@@ -66,6 +79,12 @@ def get_tags(session, tags=None):
 
 
 def add_repos(session, repos):
+    """ Add the given repositores to the db.
+
+        Args:
+            session (session object): db session object.
+            repos (list): list of repositories need to be updated in the db.
+    """
 
     added_repos = []
 
@@ -94,9 +113,11 @@ def add_repos(session, repos):
 
 
 def update_downloads(session, repos):
-    """ Update the repos to the db.
+    """ Update the repository's downlaod attribute in db.
 
         Args:
+            session (session object): db session object.
+            repos (list): list of repositores to be updated.
     """
     repos = session.query(_models.Repository)\
         .filter(_models.Repository.name.in_(repos))\
@@ -107,6 +128,15 @@ def update_downloads(session, repos):
 
 
 def get_repos_from_tags(session, tags=None):
+    """ Fetch repositores for the given tags.
+
+        Args:
+            session (session object): db session object.
+            tags (list): repositores will be fetched based on these given tags.
+
+        Returns:
+            list: of repositories fetched from db.
+    """
     if not tags:
         return []
 
@@ -124,6 +154,16 @@ def get_repos_from_tags(session, tags=None):
 
 
 def get_repo_details(session, repo):
+    """ Get detail for the given repository.
+
+        Args:
+            session (session object): db session object.
+            repo (str): repository name for which details will be fetched.
+
+        Returns:
+            (dict): details for the given repository.
+
+    """
     return session.query(_models.Repository)\
         .filter(_models.Repository.name == repo)\
         .first()

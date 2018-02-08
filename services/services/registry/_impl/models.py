@@ -1,3 +1,6 @@
+""" Database models for the service.
+"""
+
 import sqlalchemy
 from sqlalchemy.ext import declarative
 
@@ -26,6 +29,8 @@ repositories_tags = sqlalchemy.Table(
 
 
 class Tag(DeclarativeBase):
+    """ Class for tag table.
+    """
     __tablename__ = 'tags'
 
     id_ = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
@@ -39,6 +44,8 @@ class Tag(DeclarativeBase):
 
 
 class Repository(DeclarativeBase):
+    """ Class for repository table.
+    """
     __tablename__ = 'repositories'
 
     id_ = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)

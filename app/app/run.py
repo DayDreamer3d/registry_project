@@ -1,3 +1,7 @@
+""" Main app module sitting at frontend
+and providing all the api entrypoints and rendering templates.
+"""
+
 import functools
 import flask
 import flask_nameko
@@ -10,16 +14,33 @@ rpc = flask_nameko.FlaskPooledClusterRpcProxy()
 
 app = flask.Flask(__name__)
 app.config['NAMEKO_AMQP_URI'] = config['NAMEKO_AMQP_URI']
-# app.config['SERVER_NAME'] = 'software-registry.com'
 
 rpc.init_app(app)
 
 # TODO: use Blueprint for different routes
 
-
 def client_key_from_cookie(func):
+    """ Decorator to get client key from cookie.
+
+        Args:
+            func: function object
+
+        Returns:
+            Function object
+    """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        """ Wrapper function to the actual work
+
+            Args:
+                args(list): all the required arguments.
+
+            Kwargs:
+                kwargs(dict): all the keyword arguments.
+
+            Returns:
+                output of the wrapped function.
+        """
         cookie_key = 'software-registry-client-key'
         client_key = flask.request.cookies.get(cookie_key)
         kwargs['client_key'] = client_key
@@ -31,6 +52,14 @@ def client_key_from_cookie(func):
 @client_key_from_cookie
 @auth.validate_client
 def index(client_key=None):
+    """ Entryoint for the ui.
+
+        Kwargs:
+            client-key: user provding the unique client key (per session).
+
+        Returns:
+            Response object: response object containg renderend template and client-key cookie.
+    """
     response = flask.make_response('Test cookie: {}'.format(client_key))
     if not client_key:
         client_key = auth.add_client_key()
@@ -48,6 +77,11 @@ def index(client_key=None):
 
 @app.route('/api', methods=['GET'])
 def api_home():
+    """ Home entrypoint for the api.
+
+        Returns:
+            Response object: with all the categories of resources.
+    """
     api_home_url = flask.url_for('api_home')
     resources = ['repos', 'tags']
     response = {
@@ -61,6 +95,11 @@ def api_home():
 @app.route('/api/tags', methods=['GET', 'POST'])
 @auth.validate_client
 def tags():
+    """ Entrypint to get/set the tags/tag.
+
+        Returns:
+            Response object: json response for the operation.
+    """
     if flask.request.method == 'GET':
         return get_tags()
     elif flask.request.method == 'POST':
@@ -70,6 +109,14 @@ def tags():
 @app.route('/api/tags/<path:tag>', methods=['GET'])
 @auth.validate_client
 def get_tag(tag):
+    """ Entrypint to get the details of a tag.
+
+        Args:
+            tag: required tag for which the details will be fetched.
+
+        Returns:
+            Response object: json response with tag details.
+    """
     tags = rpc.registry.get_tags([tag])
     for name, popularity in tags:
         tag = {'name': name, 'popularity': popularity}
@@ -90,6 +137,11 @@ def get_tag(tag):
 @app.route('/api/repos', methods=['GET', 'POST'])
 @auth.validate_client
 def repos():
+    """ Entrypint to get/set the repositories/repository.
+
+        Returns:
+            Response object: json response for the operation.
+    """
     if flask.request.method == 'GET':
         return get_repos()
     elif flask.request.method == 'POST':
@@ -99,6 +151,14 @@ def repos():
 @app.route('/api/repos/<path:repo>', methods=['GET'])
 @auth.validate_client
 def get_repo(repo):
+    """ Entrypint to get the details of a repository.
+
+        Args:
+            tag: required repository for which the details will be fetched.
+
+        Returns:
+            Response object: json response with repository details.
+    """
     repo = rpc.registry.get_repo(repo)
     if repo:
         return flask.jsonify(repo)
@@ -117,6 +177,11 @@ def get_repo(repo):
 
 @app.route('/api/auth/client-key', methods=['POST'])
 def generate_client_key():
+    """ Entrypoint to generate the client key.
+
+        Returns:
+            Response object: json response with client key.
+    """
     response = {
         'client-key': auth.add_client_key(),
         'api-home': flask.url_for('api_home'),
@@ -126,6 +191,11 @@ def generate_client_key():
 
 
 def add_tag():
+    """ Function to add a tag to the registry.
+
+        Returns:
+            Response object: json response with url for the tag.
+    """
     try:
         name = flask.request.get_json(force=True)
     except Exception as e:
@@ -167,6 +237,11 @@ def add_tag():
 
 
 def get_tags():
+    """ Function to fetch tags from registry.
+
+        Returns:
+            Response object: json response with all urls for the fetched tags.
+    """
     tags = {
         name: parse.quote('/'.join([flask.url_for('tags'), name]))
         for name, popularity in rpc.registry.get_tags()
@@ -176,6 +251,11 @@ def get_tags():
 
 
 def add_repo():
+    """ Function to add a repository to the registry.
+
+        Returns:
+            Response object: json response with url for the repository.
+    """
     required_keys = ['name', 'description', 'uri', 'tags']
     try:
         repo = flask.request.get_json(force=True)
@@ -226,6 +306,11 @@ def add_repo():
 
 
 def get_repos():
+    """ Function to fetch repositories from registry.
+
+        Returns:
+            Response object: json response with all urls for the fetched repositories.
+    """
     tags = flask.request.args.getlist('tag')
 
     repos = {
