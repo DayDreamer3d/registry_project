@@ -1,7 +1,7 @@
 
 
 function attach_search_event() {
-     $($('#search_repos')[0]).click(function() {
+    $($('#search_repos')[0]).click(function() {
          var client_key = $.cookie('software-registry-client-key');
          var tags_str = '&';
 
@@ -14,25 +14,22 @@ function attach_search_event() {
          }
 
          tags_str = tags_str.slice(0, -1);
-
-         var url = 'http://webserver/api/repos?client-key=' + client_key + tags_str;
-         $.getJSON({
-                 url: url,
-                 type: 'GET',
-                 dataType: 'json',
-                 contentType: 'application/json',
-                 success: function(data, status, jqXHR) {
-                     console.log(data);
-                 },
-                 error: function(xhr, ajaxOptions, thrownError) {
-                     console.log(xhr.responseText);
-                 }
-            });
+         var url = 'http://localhost:5000/repo_cards?client-key=' + client_key + tags_str;
+         $.ajax({
+             url: url,
+             type: 'GET',
+             dataType: 'html',
+             success: function(data, status, jqXHR) {
+                 $('#repo_cards_container').empty()
+                 $('#repo_cards_container').append(data)
+             }
         });
-     });
+    });
 }
 
 
 $(document).ready(
-    function() { attach_search_event(); }
+    function() {
+        attach_search_event();
+    }
 );

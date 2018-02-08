@@ -1,3 +1,7 @@
 body {
     background-color: #eff7f6;
 }
+
+.space-card {
+    margin: 2px;
+}

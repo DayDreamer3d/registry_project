@@ -1,0 +1,6 @@
+{% import "macros/repo.html" as repo -%}
+
+{% for repo_detail in repos -%}
+    {% call repo.card(repo_detail) -%}
+    {% endcall -%}
+{% endfor -%}

@@ -3,11 +3,11 @@
 
 {% block main_body -%}
 
-<main class = "mdl-layout__content">  
+<main class = "mdl-layout__content">
 
 <div class="mdl-grid">
 
-    <div id="tags_container" class = "mdl-cell mdl-cell--12-col">
+    <div id="tags_container" class = "mdl-cell mdl-cell--7-col mdl-cell--5-col-tablet mdl-cell--2-col-phone">
         {% for name in tags -%}
         <span class="mdl-chip mdl-chip--deletable">
             <span class="mdl-chip__text">{{ name }}</span>
@@ -16,6 +16,9 @@
             </label>
         </span>
         {% endfor -%}
+    </div>
+
+    <div id="tags_container" class = "mdl-cell mdl-cell--3-col mdl-cell--3-col-tablet mdl-cell--2-col-phone">
         <button id="search_repos" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
             <i class = "material-icons">search</i>
         </button>
@@ -23,13 +26,13 @@
 
 </div>
 
-<div class="mdl-grid">
+<div id="repo_cards_container" class="mdl-grid">
     {% for repo_detail in repos -%}
         {% call repo.card(repo_detail) -%}
         {% endcall -%}
     {% endfor -%}
 </div>
 
-</main>  
+</main>
 
 {% endblock -%}

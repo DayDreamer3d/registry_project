@@ -75,6 +75,35 @@ def index(client_key=None):
     return response
 
 
+@app.route('/repo_cards', methods=['GET'])
+@client_key_from_cookie
+@auth.validate_client
+def get_repo_cards(client_key=None):
+    """ Render the repository cards.
+
+        Kwargs:
+            client-key: user provding the unique client key (per session).
+
+        Returns:
+            Response object: response object containg renderend template and client-key cookie.
+    """
+    response = flask.make_response('Test cookie: {}'.format(client_key))
+    if not client_key:
+        client_key = auth.add_client_key()
+
+    tags = flask.request.args.getlist('tag')
+
+    repos = rpc.registry.get_repos(tags)
+
+    response = flask.make_response(
+        flask.render_template('repo_cards.html', repos=repos)
+    )
+
+    response.set_cookie('software-registry-client-key', client_key)
+
+    return response
+
+
 @app.route('/api', methods=['GET'])
 def api_home():
     """ Home entrypoint for the api.
