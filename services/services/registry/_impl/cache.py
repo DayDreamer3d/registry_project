@@ -2,17 +2,16 @@
 """
 
 import logging
-
-# TODO: add this into config
-cache_key_delimiter = ':'
+from ..._utils import config
 
 # REVIEW: what about having cache as a service
 
 # TODO: these cache functions could be in class.
-# TODO: refactor the code for this module, IMP: try better pipeling for redsis.
+
 
 service_name = 'registry'
 logger = logging.getLogger('services_{}'.format(service_name))
+config = config.get_config(service_name)
 
 
 def add_tags(redis, cache_key, tags):
@@ -23,7 +22,7 @@ def add_tags(redis, cache_key, tags):
             cache_key (str): parent key for the cache under which all objects will be written.
             tags (list): list of tags that would be inserted in cache.
     """
-    key = cache_key_delimiter.join([cache_key, 'tags'])
+    key = config['CACHE']['DELIMITER'].join([cache_key, 'tags'])
 
     items = []
     for tag in tags:
@@ -32,7 +31,6 @@ def add_tags(redis, cache_key, tags):
 
     with redis.pipeline() as pipe:
         pipe.zadd(key, *items).execute()
-
         logger.debug('Tags({}) tags are added to cache.'.format(tags))
 
 
@@ -47,7 +45,7 @@ def get_tags(redis, cache_key, tags):
         Retuns:
             tuple: pair of tags cached tags and non cached tags.
     """
-    key = cache_key_delimiter.join([cache_key, 'tags'])
+    key = config['CACHE']['DELIMITER'].join([cache_key, 'tags'])
 
     logger.debug('Get details for Tag({}) from cache.'.format(tags))
 
@@ -56,7 +54,11 @@ def get_tags(redis, cache_key, tags):
             cached_tags, non_cached_tags = [], []
 
             for tag in tags:
-                popularity = pipe.zscore(key, tag).execute()[0]
+                pipe.zscore(key, tag)
+
+            popularity = pipe.execute()
+
+            for tag, popularity in zip(tags, popularity):
                 if popularity:
                     cached_tags.append((tag, popularity))
                 else:
@@ -89,9 +91,9 @@ def update_repos(redis, cache_key, repos):
     """
     repo_names = [repo for repo in repos]
 
-    label_key = cache_key_delimiter.join([cache_key, 'labels'])
-    repo_key = cache_key_delimiter.join([cache_key, 'repos'])
-    tag_key = cache_key_delimiter.join([cache_key, 'tags'])
+    label_key = config['CACHE']['DELIMITER'].join([cache_key, 'labels'])
+    repo_key = config['CACHE']['DELIMITER'].join([cache_key, 'repos'])
+    tag_key = config['CACHE']['DELIMITER'].join([cache_key, 'tags'])
 
     with redis.pipeline() as pipe:
         repos_to_add = []
@@ -109,13 +111,13 @@ def update_repos(redis, cache_key, repos):
 
             for label in label_names:
                 # add the repo iff this tag exists in labels.
-                label_item_key = cache_key_delimiter.join([label_key, label])
+                label_item_key = config['CACHE']['DELIMITER'].join([label_key, label])
                 if not pipe.exists(label_item_key).execute()[0]:
                     continue
 
                 labels_to_add.append([label_item_key, repo.downloads, repo.name])
 
-                repo_item_key = cache_key_delimiter.join([repo_key, repo.name])
+                repo_item_key = config['CACHE']['DELIMITER'].join([repo_key, repo.name])
                 if pipe.exists(repo_item_key).execute()[0]:
                     continue
 
@@ -128,7 +130,7 @@ def update_repos(redis, cache_key, repos):
                 })
 
         for repo in repos_to_add:
-            key = cache_key_delimiter.join([repo_key, repo['name']])
+            key = config['CACHE']['DELIMITER'].join([repo_key, repo['name']])
             pipe.hmset(key, repo)
 
         for label in labels_to_add:
@@ -152,25 +154,24 @@ def add_repos(redis, cache_key, tags, repos):
     tags = tags or []
     repos = repos or []
 
-    label_key = cache_key_delimiter.join([cache_key, 'labels'])
-    repo_key = cache_key_delimiter.join([cache_key, 'repos'])
-    tag_key = cache_key_delimiter.join([cache_key, 'tags'])
+    label_key = config['CACHE']['DELIMITER'].join([cache_key, 'labels'])
+    repo_key = config['CACHE']['DELIMITER'].join([cache_key, 'repos'])
+    tag_key = config['CACHE']['DELIMITER'].join([cache_key, 'tags'])
 
     with redis.pipeline() as pipe:
         # increment the popularity of tags
         for tag in tags:
             pipe.zincrby(tag_key, tag)
 
-        # TODO: use itertools if you can
         for repo in repos:
             labels = [label.name for label in repo.labels]
             to_update_tags = set(labels).intersection(tags)
 
             for tag in to_update_tags:
-                label_item_key = cache_key_delimiter.join([label_key, tag])
+                label_item_key = config['CACHE']['DELIMITER'].join([label_key, tag])
                 pipe.zadd(label_item_key, repo.downloads, repo.name)
 
-            key = cache_key_delimiter.join([repo_key, repo.name])
+            key = config['CACHE']['DELIMITER'].join([repo_key, repo.name])
             pipe.hmset(key, {
                 'name': repo.name,
                 'description': repo.description,
@@ -196,8 +197,8 @@ def get_repos_from_tags(redis, cache_key, tags=None):
 
     logger.debug('Get the repos for Tags({}) from cache.'.format(tags))
 
-    label_key = cache_key_delimiter.join([cache_key, 'labels'])
-    repo_key = cache_key_delimiter.join([cache_key, 'repos'])
+    label_key = config['CACHE']['DELIMITER'].join([cache_key, 'labels'])
+    repo_key = config['CACHE']['DELIMITER'].join([cache_key, 'repos'])
 
     non_cached_tags = []
     result = []
@@ -207,7 +208,7 @@ def get_repos_from_tags(redis, cache_key, tags=None):
         repos = []
         for tag in tags:
 
-            label_item_key = cache_key_delimiter.join([label_key, tag])
+            label_item_key = config['CACHE']['DELIMITER'].join([label_key, tag])
 
             repos_per_tag = []
             if pipe.exists(label_item_key).execute()[0]:
@@ -227,7 +228,7 @@ def get_repos_from_tags(redis, cache_key, tags=None):
                 non_cached_tags.append(tag)
 
         for repo, downloads in repos:
-            repo_item_key = cache_key_delimiter.join([repo_key, repo])
+            repo_item_key = config['CACHE']['DELIMITER'].join([repo_key, repo])
 
             if not pipe.exists(repo_item_key).execute()[0]:
                 continue
@@ -257,9 +258,9 @@ def get_repo_details(redis, cache_key, repo):
         Retuns:
             dict: of details for the repository.
     """
-    key = cache_key_delimiter.join([cache_key, 'repos', repo])
-    label_key = cache_key_delimiter.join([cache_key, 'labels'])
-    tag_key = cache_key_delimiter.join([cache_key, 'tags'])
+    key = config['CACHE']['DELIMITER'].join([cache_key, 'repos', repo])
+    label_key = config['CACHE']['DELIMITER'].join([cache_key, 'labels'])
+    tag_key = config['CACHE']['DELIMITER'].join([cache_key, 'tags'])
 
     with redis.pipeline() as pipe:
         details = redis.hgetall(key).execute()[0]
@@ -269,7 +270,7 @@ def get_repo_details(redis, cache_key, repo):
 
         details['tags'] = eval(details['tags'])
         for label in details['tags']:
-            label_item_key = cache_key_delimiter.join([label_key, label])
+            label_item_key = config['CACHE']['DELIMITER'].join([label_key, label])
             if not pipe.exists(label_item_key).execute()[0]:
                 continue
 
@@ -277,7 +278,7 @@ def get_repo_details(redis, cache_key, repo):
             dsetails['downloads'] = int(downloads)
 
             # checking single label is enough because
-            # for any tag repository details would be same
+            # for any tag, repository details would be the same
             break
 
     if details:
@@ -294,8 +295,8 @@ def update_downloads(redis, cache_key, repos):
             cache_key (str): parent key for the cache under which all objects will be updated.
             repos (list): list of repository names.
     """
-    label_key = cache_key_delimiter.join([cache_key, 'labels'])
-    repo_key = cache_key_delimiter.join([cache_key, 'repos'])
+    label_key = config['CACHE']['DELIMITER'].join([cache_key, 'labels'])
+    repo_key = config['CACHE']['DELIMITER'].join([cache_key, 'repos'])
 
     # for better redis pipelining,
     # collect all the items to be incremented
@@ -307,7 +308,7 @@ def update_downloads(redis, cache_key, repos):
 
         for repo in repos:
             # collect all the repos need to be updated
-            repo_item_key = cache_key_delimiter.join([repo_key, repo])
+            repo_item_key = config['CACHE']['DELIMITER'].join([repo_key, repo])
             if not pipe.exists(repo_item_key).execute()[0]:
                 continue
             repos_to_update.append(repo_item_key)
@@ -315,7 +316,7 @@ def update_downloads(redis, cache_key, repos):
             # collect all the labels need to be updated
             labels = eval(pipe.hget(repo_item_key, 'tags').execute()[0])
             for label in labels:
-                label_item_key = cache_key_delimiter.join([label_key, label])
+                label_item_key = config['CACHE']['DELIMITER'].join([label_key, label])
                 if not pipe.exists(label_item_key).execute()[0]:
                     continue
                 labels_to_update.append((label_item_key, repo))
