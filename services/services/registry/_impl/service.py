@@ -32,6 +32,16 @@ logger = _log.create_file_logger(
 )
 
 
+def _repo_info(repo):
+    return {
+        'name': repo.name,
+        'description': repo.description,
+        'downloads': repo.downloads,
+        'uri': repo.uri,
+        'tags': [tag.name for tag in repo.labels]
+    }
+
+
 # TODO: docs please critical for the service
 class RegistryService(_base.BaseService):
     name = service_name
@@ -186,25 +196,14 @@ class RegistryService(_base.BaseService):
                 )
 
         db_repos = [
-            {
-                'name': repo.name,
-                'description': repo.description,
-                'downloads': repo.downloads,
-                'uri': repo.uri,
-                'tags': [tag.name for tag in repo.labels]
-            }
+            _repo_info(repo)
             for repo in db_repos
         ]
 
-        # TODO: get unique results from cache
+        #  get unique repos for final result
         repos = cached_repos + db_repos
-
         repos = list({repo['name']: repo for repo in repos}.values())
-
         repo_names = [repo['name'] for repo in repos]
-
-        # if repo_names:
-        #     self.update_downloads(repo_names)
 
         logger.info(
             'Result: Repos({}).'.format(repo_names)
@@ -239,13 +238,7 @@ class RegistryService(_base.BaseService):
 
         # TODO: there are other places where same dict of repo details are getting used.
         # should be a skeleton dict and reference it here to fill the values.
-        return {
-            'name': repo_details.name,
-            'tags': [tag.name for tag in repo_details.labels],
-            'description': repo_details.description,
-            'downloads': repo_details.downloads,
-            'uri': repo_details.uri,
-        }
+        return _repo_info(repo_details)
 
     @rpc.rpc
     def update_downloads(self, repo):
