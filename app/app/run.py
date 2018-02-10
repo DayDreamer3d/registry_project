@@ -20,7 +20,6 @@ rpc.init_app(app)
 # TODO: use Blueprint for different routes
 
 
-@app.errorhandler(404)
 def resource_not_found(category, resource):
     """ Custom 404 error handlder
     """
