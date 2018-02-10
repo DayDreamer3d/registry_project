@@ -176,7 +176,6 @@ def add_repos(redis, cache_key, tags, repos):
                 'description': repo.description,
                 'uri': repo.uri,
                 'tags': labels,
-                'downloads': repo.downloads
             })
 
         pipe.execute()
@@ -259,9 +258,73 @@ def get_repo_details(redis, cache_key, repo):
             dict: of details for the repository.
     """
     key = cache_key_delimiter.join([cache_key, 'repos', repo])
-    details = redis.hgetall(key)
+    label_key = cache_key_delimiter.join([cache_key, 'labels'])
+    tag_key = cache_key_delimiter.join([cache_key, 'tags'])
+
+    with redis.pipeline() as pipe:
+        details = redis.hgetall(key).execute()[0]
+
+        if not details:
+            return {}
+
+        details['tags'] = eval(details['tags'])
+        for label in details['tags']:
+            label_item_key = cache_key_delimiter.join([label_key, label])
+            if not pipe.exists(label_item_key).execute()[0]:
+                continue
+
+            downloads = pipe.zscore(label_item_key, repo).execute[0]
+            dsetails['downloads'] = int(downloads)
+
+            # checking single label is enough because
+            # for any tag repository details would be same
+            break
 
     if details:
         logger.debug('Repo({}) Details({}) are fetched from cache.'.format(repo, details))
 
     return details
+
+
+def update_downloads(redis, cache_key, repos):
+    """ Update the repositories downloads attribute in cache
+
+        Args:
+            redis (object): redis connection object.
+            cache_key (str): parent key for the cache under which all objects will be updated.
+            repos (list): list of repository names.
+    """
+    label_key = cache_key_delimiter.join([cache_key, 'labels'])
+    repo_key = cache_key_delimiter.join([cache_key, 'repos'])
+
+    # for better redis pipelining,
+    # collect all the items to be incremented
+    # and then finally increment all together
+
+    with redis.pipeline() as pipe:
+        repos_to_update = []
+        labels_to_update = []
+
+        for repo in repos:
+            # collect all the repos need to be updated
+            repo_item_key = cache_key_delimiter.join([repo_key, repo])
+            if not pipe.exists(repo_item_key).execute()[0]:
+                continue
+            repos_to_update.append(repo_item_key)
+
+            # collect all the labels need to be updated
+            labels = eval(pipe.hget(repo_item_key, 'tags').execute()[0])
+            for label in labels:
+                label_item_key = cache_key_delimiter.join([label_key, label])
+                if not pipe.exists(label_item_key).execute()[0]:
+                    continue
+                labels_to_update.append((label_item_key, repo))
+
+        # update  repos and labels
+        for repo_item in repos_to_update:
+            pipe.hincrby(repo_item, 'downloads', 1)
+
+        for label_item, repo in labels_to_update:
+            pipe.zincrby(label_item, repo, 1)
+
+        pipe.execute()

@@ -109,8 +109,7 @@ class RegistryService(_base.BaseService):
         # get the tags associated with given repos
         tags = []
         for repo_obj in repos:
-            for repo, info in repo_obj.items():
-                tags.extend(info['tags'])
+            tags.extend(repo_obj['tags'])
 
         # Only update the unique and new tags
         # REVIEW: this would be a rpc call, do we want to do this way
@@ -119,7 +118,6 @@ class RegistryService(_base.BaseService):
 
         # update popularity for tags (include duplicates)
         # _query.update_popularity(self.session, tags)
-
         added_repos = _query.add_repos(self.session, repos)
 
         repo_names = [repo.name for repo in added_repos]
@@ -175,7 +173,7 @@ class RegistryService(_base.BaseService):
         if db_repos:
             # only add repos which belong to queried tags.
             # tags = cached + non cached tags as there could be repos
-            # which belongs to cached tags and are not yet in cache.
+            # which belong to cached tags and are not yet in cache.
             try:
                 _cache.add_repos(self.redis, config['CACHE']['KEY'], tags, db_repos)
                 logger.info(
@@ -205,8 +203,8 @@ class RegistryService(_base.BaseService):
 
         repo_names = [repo['name'] for repo in repos]
 
-        if repo_names:
-            self.update_downloads(repo_names)
+        # if repo_names:
+        #     self.update_downloads(repo_names)
 
         logger.info(
             'Result: Repos({}).'.format(repo_names)
@@ -250,9 +248,15 @@ class RegistryService(_base.BaseService):
         }
 
     @rpc.rpc
-    def update_downloads(self, repos):
-        # _cache.update_downloads([repo])
-        _query.update_downloads(self.session, repos)
+    def update_downloads(self, repo):
+        try:
+            _cache.update_downloads(self.redis, config['CACHE']['KEY'], [repo])
+        except Exception as e:
+            logger.error(
+                'Exception occurred while updating downloads for Repo({}).'.format(repo),
+                exc_info=True
+            )
+        _query.update_downloads(self.session, [repo])
 
 
 def create_container():

@@ -89,21 +89,21 @@ def add_repos(session, repos):
     added_repos = []
 
     for repo in repos:
-        for name, info in repo.items():
-            repo_obj = _models.Repository(
-                name=name,
-                description=info['description'],
-                uri=info['uri']
-            )
-            session.add(repo_obj)
+        repo_obj = _models.Repository(
+            name=repo['name'],
+            description=repo['description'],
+            uri=repo['uri']
+        )
+        session.add(repo_obj)
 
-            for tag in info['tags']:
-                tag = session.query(_models.Tag)\
-                        .filter(_models.Tag.name == tag)\
-                        .first()
-                repo_obj.labels.append(tag)
+        for tag in repo['tags']:
+            tag = session.query(_models.Tag)\
+                    .filter(_models.Tag.name == tag)\
+                    .first()
+            repo_obj.labels.append(tag)
 
-            added_repos.append(repo_obj)
+        added_repos.append(repo_obj)
+
     session.commit()
 
     repo_names = [repo.name for repo in added_repos]
