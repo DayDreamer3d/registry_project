@@ -20,10 +20,30 @@ function attach_search_event() {
              type: 'GET',
              dataType: 'html',
              success: function(data, status, jqXHR) {
-                 $('#repo_cards_container').empty()
-                 $('#repo_cards_container').append(data)
+                 $('#repo_cards_container').empty();
+                 $('#repo_cards_container').append(data);
+                 attach_download_event();
              }
         });
+    });
+}
+
+
+function attach_download_event() {
+    $('.mdl-button').on('click', function() {
+        var download_button = $(this);
+        var repo_name = $(download_button.parent()[0]).siblings('.mdl-card__title').children().text();
+        var client_key = $.cookie('software-registry-client-key');
+        var url = 'http://localhost:5000/api/repos/' + repo_name + '?client-key=' + client_key;
+
+        $.ajax({
+            url: url,
+            type: 'PUT',
+            dataType: 'json',
+            success: function(data, status, jqXHR) {
+                $(download_button).children('.mdl-badge').attr('data-badge', data.downloads);
+            }
+       });
     });
 }
 

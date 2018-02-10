@@ -19,6 +19,7 @@ rpc.init_app(app)
 
 # TODO: use Blueprint for different routes
 
+
 def client_key_from_cookie(func):
     """ Decorator to get client key from cookie.
 
@@ -124,7 +125,7 @@ def api_home():
 @app.route('/api/tags', methods=['GET', 'POST'])
 @auth.validate_client
 def tags():
-    """ Entrypint to get/set the tags/tag.
+    """ Entrypoint to get/set the tags/tag.
 
         Returns:
             Response object: json response for the operation.
@@ -138,7 +139,7 @@ def tags():
 @app.route('/api/tags/<path:tag>', methods=['GET'])
 @auth.validate_client
 def get_tag(tag):
-    """ Entrypint to get the details of a tag.
+    """ Entrypoint to get the details of a tag.
 
         Args:
             tag: required tag for which the details will be fetched.
@@ -166,7 +167,7 @@ def get_tag(tag):
 @app.route('/api/repos', methods=['GET', 'POST'])
 @auth.validate_client
 def repos():
-    """ Entrypint to get/set the repositories/repository.
+    """ Entrypoint to get/set the repositories/repository.
 
         Returns:
             Response object: json response for the operation.
@@ -177,31 +178,21 @@ def repos():
         return add_repo()
 
 
-@app.route('/api/repos/<path:repo>', methods=['GET'])
+@app.route('/api/repos/<path:repo>', methods=['GET', 'PUT'])
 @auth.validate_client
 def get_repo(repo):
-    """ Entrypint to get the details of a repository.
+    """ Entrypoint to get the details of a repository.
 
         Args:
-            tag: required repository for which the details will be fetched.
+            repo: required repository for which the details will be fetched.
 
         Returns:
             Response object: json response with repository details.
     """
-    repo = rpc.registry.get_repo(repo)
-    if repo:
-        return flask.jsonify(repo)
-
-    response = {
-        'error': 'Not Found',
-        'message': '{} repo not found. Visit repos url to get a list of all the valid repos.'.format(tag),
-        'repos_url': flask.url_for('repos')
-    }
-    return flask.make_response(
-        flask.jsonify(response),
-        404,
-        {'Location': flask.url_for('repos')}
-    )
+    if flask.request.method == 'GET':
+        return get_repo_details(repo)
+    elif flask.request.method == 'PUT':
+        return update_downloads(repo)
 
 
 @app.route('/api/auth/client-key', methods=['POST'])
@@ -321,17 +312,14 @@ def add_repo():
             {}
         )
 
-    name = repo.pop('name')
-    repo = {name: repo}
-
     rpc.registry.add_repos([repo])
 
     repo_url = parse.quote(
-        '{}/{}'.format(flask.url_for('repos'), name)
+        '{}/{}'.format(flask.url_for('repos'), repo['name'])
     )
 
     response = {
-        'message': '"{}" repo has been created.'.format(name),
+        'message': '"{}" repo has been created.'.format(repo['name']),
         'new_repo_url': repo_url
     }
     return flask.make_response(
@@ -364,6 +352,66 @@ def get_repos():
         response['repo_query_example'] = '{}?tag=tag1&tag=tag2'.format(flask.url_for('repos'))
 
     return flask.jsonify(response)
+
+
+def get_repo_details(repo):
+    """ Function to get details of given repository.
+
+        Args:
+            repo: required repository for which the details will be fetched.
+
+        Returns:
+            Response object: json response with repository details.
+    """
+    repo = rpc.registry.get_repo(repo)
+    if repo:
+        return flask.jsonify(repo)
+
+    response = {
+        'error': 'Not Found',
+        'message': 'Repo({}) repo not found. Visit repos url to get a list of all the valid repos.'.format(repo),
+        'repos_url': flask.url_for('repos')
+    }
+    return flask.make_response(
+        flask.jsonify(response),
+        404,
+        {'Location': flask.url_for('repos')}
+    )
+
+
+def update_downloads(repo):
+    """ Function to update downloads for the given repository.
+
+        Args:
+            repo: required repository for which the details will be fetched.
+
+        Returns:
+            Response object: json response with repository details.
+    """
+    repo_url = parse.quote('/'.join([flask.url_for('repos'), repo]))
+
+    try:
+        rpc.registry.update_downloads(repo)
+    except Exception as e:
+        response = {
+            'error': 'Not Found',
+            'message': 'Repo({}) not found. Visit repos url to get a list of all the valid repos.'.format(repo),
+            'repos_url': repo_url
+        }
+        # TODO: repeatative code, make a function
+        return flask.make_response(
+            flask.jsonify(response),
+            404,
+            {'Location': flask.url_for('repos')}
+        )
+
+    response = {
+        'downloads': rpc.registry.get_repo(repo)['downloads'],
+        'message': 'Repo({}) has been updated.'.format(repo),
+        'repo_url': parse.quote('/'.join([flask.url_for('repos'), repo]))
+    }
+    return flask.jsonify(response)
+
 
 
 if __name__ == '__main__':
