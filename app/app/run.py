@@ -20,6 +20,25 @@ rpc.init_app(app)
 # TODO: use Blueprint for different routes
 
 
+@app.errorhandler(404)
+def resource_not_found(category, resource):
+    """ Custom 404 error handlder
+    """
+    response = {'error': 'Resource not found.'}
+    response['message'] = '{title}({resource}) not found. Visit {category} url for all the resources.'.format(
+        title=category.title(), resource=resource, category=category
+    )
+
+    url = flask.url_for(category)
+    response['{}_url'.format(category)] = url
+
+    return flask.make_response(
+        flask.jsonify(response),
+        404,
+        {'Location': url}
+    )
+
+
 def client_key_from_cookie(func):
     """ Decorator to get client key from cookie.
 
@@ -151,17 +170,7 @@ def get_tag(tag):
     for name, popularity in tags:
         tag = {'name': name, 'popularity': popularity}
         return flask.jsonify(tag)
-
-    response = {
-        'error': 'Not Found',
-        'message': '{} tag not found. Visit tags url to get a list of all the valid tags.'.format(tag),
-        'tags_url': flask.url_for('tags')
-    }
-    return flask.make_response(
-        flask.jsonify(response),
-        404,
-        {'Location': flask.url_for('tags')}
-    )
+    return resource_not_found('tags', tag)
 
 
 @app.route('/api/repos', methods=['GET', 'POST'])
@@ -367,16 +376,7 @@ def get_repo_details(repo):
     if repo:
         return flask.jsonify(repo)
 
-    response = {
-        'error': 'Not Found',
-        'message': 'Repo({}) repo not found. Visit repos url to get a list of all the valid repos.'.format(repo),
-        'repos_url': flask.url_for('repos')
-    }
-    return flask.make_response(
-        flask.jsonify(response),
-        404,
-        {'Location': flask.url_for('repos')}
-    )
+    return resource_not_found('repos', repo)
 
 
 def update_downloads(repo):
@@ -393,17 +393,7 @@ def update_downloads(repo):
     try:
         rpc.registry.update_downloads(repo)
     except Exception as e:
-        response = {
-            'error': 'Not Found',
-            'message': 'Repo({}) not found. Visit repos url to get a list of all the valid repos.'.format(repo),
-            'repos_url': repo_url
-        }
-        # TODO: repeatative code, make a function
-        return flask.make_response(
-            flask.jsonify(response),
-            404,
-            {'Location': flask.url_for('repos')}
-        )
+        return resource_not_found('repos', repo)
 
     response = {
         'downloads': rpc.registry.get_repo(repo)['downloads'],
