@@ -10,13 +10,7 @@ COPY ./app /app
 WORKDIR /app
 RUN chmod +x ./run.py
 
-EXPOSE 5000
+EXPOSE 4000
 
-ENTRYPOINT ["python"]
-CMD ["run.py"]
-
-# unfortunately gunicorn is not working with nameko extensions
-# EXPOSE 4000
-
-# ENTRYPOINT ["gunicorn"]
-# CMD ["-w", "2", "-b", "0.0.0.0:4000", "app:app"]
+ENTRYPOINT ["gunicorn"]
+CMD ["-w", "1", "-b", "0.0.0.0:4000", "run:app"]

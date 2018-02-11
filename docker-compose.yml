@@ -1,12 +1,14 @@
 version: "3"
 
 services:
-    # webserver:
-    #     image: softreg-nginx:v1
-    #     deploy:
-    #         replicas: 1
-    #         restart_policy:
-    #             condition: on-failure
+    webserver:
+        image: daydreamer/softreg-nginx:v1
+        ports:
+            - 80:80
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
     msg_queue:
         image: rabbitmq:3-management
         ports:
@@ -37,9 +39,9 @@ services:
     app:
         image: daydreamer/softreg-app:v1
         ports:
-            - 5000:5000
+            - 4000:4000
         deploy:
-            replicas: 2
+            replicas: 1
             restart_policy:
                 condition: on-failure
     registry_service:
