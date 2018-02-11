@@ -18,19 +18,19 @@ Let's look at them both.
 
 ### UI ###
 
-After installation, if you access `<host-ip>:5000` it will bring up the ui which would be blank in the starting but would display all the saved tags. For now, it can only do this much don't get your hopes high with it ;)
+After installation, if you access `<host-ip>` it will bring up the ui which would be blank in the starting but would display all the saved tags. For now, it can only do this much don't get your hopes high with it ;)
 
 ### Api ###
 
 Api provides endpionts to GET, POST the data to server (no DELETE only constructive !) but to access any of the end points we need to obtain client-key that's our first step.
 
 #### 1. Obtain the client key ####
-Please send a `POST` request to `<host-ip>:5000/api/auth/client-key` to obtain the client key.
+Please send a `POST` request to `<host-ip>/api/auth/client-key` to obtain the client key.
 
 Result would look like this:
 
 #### 2. Visit the api home page ####
-To know about the collection of resources best way to know is to visit this page. It's not too far and have probably the shortest url whihch is `<host-ip>:5000/api?client-key=<client-key>`, it's output would be.
+To know about the collection of resources best way to know is to visit this page. It's not too far and have probably the shortest url whihch is `<host-ip>/api?client-key=<client-key>`, it's output would be.
 
     {
       "client-key-url": "/api/auth/client-key",
@@ -40,7 +40,7 @@ To know about the collection of resources best way to know is to visit this page
 
 
 #### 3. Add a repository ####
-To add new repos (with tags) we have to send a `POST` request to url `<host-ip>:5000/api/repos?client-key=<client-key>` and a request body containing all fields like
+To add new repos (with tags) we have to send a `POST` request to url `<host-ip>/api/repos?client-key=<client-key>` and a request body containing all fields like
 
     { {
     "name": "usd_dev:v2",
@@ -56,6 +56,6 @@ resoult would be the url
 
 ### 4. Fetch repositories based on tags ###
 
-To get a repository from a backend we have change the request method to `GET`, add tags as query parameters with the same url `<host-ip>:5000/api/repos?client-key=<client-key>&tag=docker%20usd`
+To get a repository from a backend we have change the request method to `GET`, add tags as query parameters with the same url `<host-ip>/api/repos?client-key=<client-key>&tag=docker%20usd`
 
 Please don't hesistate in raising an issue and have fun !
