@@ -14,7 +14,7 @@ function attach_search_event() {
          }
 
          tags_str = tags_str.slice(0, -1);
-         var url = 'http://localhost:5000/repo_cards?client-key=' + client_key + tags_str;
+         var url = 'http://192.168.99.100/repo_cards?client-key=' + client_key + tags_str;
          $.ajax({
              url: url,
              type: 'GET',
@@ -33,8 +33,10 @@ function attach_download_event() {
     $('.mdl-button').on('click', function() {
         var download_button = $(this);
         var repo_name = $(download_button.parent()[0]).siblings('.mdl-card__title').children().text();
+
+        if repo_name === '' { return null; }
         var client_key = $.cookie('software-registry-client-key');
-        var url = 'http://localhost:5000/api/repos/' + repo_name + '?client-key=' + client_key;
+        var url = 'http://192.168.99.100/api/repos/' + repo_name + '?client-key=' + client_key;
 
         $.ajax({
             url: url,
