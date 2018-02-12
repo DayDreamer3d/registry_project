@@ -13,6 +13,8 @@ config = config.get_config(service_name)
 
 
 class RegistryCache(nameko_redis.Redis):
+    """ Sub-class of redis nameko extension.
+    """
     def __init__(self):
         super().__init__(config['CACHE']['LAYER'])
 
@@ -21,10 +23,10 @@ class RegistryCache(nameko_redis.Redis):
 
 
 class RegistryCacheWrapper(object):
+    """ Registry cache wrapper class which defines all the cache operations.
+    """
 
     def __init__(self, client):
-        """ asd
-        """
         self.cache_key = config['CACHE']['KEY']
         self.delimiter = config['CACHE']['DELIMITER']
         self.client = client
