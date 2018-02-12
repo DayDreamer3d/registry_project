@@ -155,8 +155,6 @@ class RegistryCacheWrapper(object):
         tags = tags or []
         repos = repos or []
 
-        # TODO: put these in __init__, really common stuff
-
         with self.client.pipeline() as pipe:
             # increment the popularity of tags
             for tag in tags:
