@@ -29,21 +29,23 @@ class RegistryCacheWrapper(object):
         self.delimiter = config['CACHE']['DELIMITER']
         self.client = client
 
+        self.tags_key = self.delimiter.join([self.cache_key, 'tags'])
+        self.labels_key = self.delimiter.join([self.cache_key, 'labels'])
+        self.repos_key = self.delimiter.join([self.cache_key, 'repos'])
+
     def add_tags(self, tags):
         """ Add the tags to the cache.
 
             Args:
                 tags (list): list of tags that would be inserted in cache.
         """
-        key = self.delimiter.join([self.cache_key, 'tags'])
-
         items = []
         for tag in tags:
             items.append(int(tag[1]))  # popularity as score
             items.append(tag[0])  # tag name
 
         with self.client.pipeline() as pipe:
-            pipe.zadd(key, *items).execute()
+            pipe.zadd(self.tags_key, *items).execute()
             logger.debug('Tags({}) tags are added to cache.'.format(tags))
 
     def get_tags(self, tags):
@@ -97,10 +99,6 @@ class RegistryCacheWrapper(object):
         """
         repo_names = [repo for repo in repos]
 
-        label_key = self.delimiter.join([self.cache_key, 'labels'])
-        repo_key = self.delimiter.join([self.cache_key, 'repos'])
-        tag_key = self.delimiter.join([self.cache_key, 'tags'])
-
         with self.client.pipeline() as pipe:
             repos_to_add = []
             labels_to_add = []
@@ -110,20 +108,20 @@ class RegistryCacheWrapper(object):
                 label_names = []
 
                 for tag in repo.labels:
-                    pipe.zadd(tag_key, 0, tag.name)
+                    pipe.zadd(self.tags_key, 0, tag.name)
                     label_names.append(tag.name)
 
                 pipe.execute()
 
                 for label in label_names:
                     # add the repo iff this tag exists in labels.
-                    label_item_key = self.delimiter.join([label_key, label])
+                    label_item_key = self.delimiter.join([self.labels_key, label])
                     if not pipe.exists(label_item_key).execute()[0]:
                         continue
 
                     labels_to_add.append([label_item_key, repo.downloads, repo.name])
 
-                    repo_item_key = self.delimiter.join([repo_key, repo.name])
+                    repo_item_key = self.delimiter.join([self.repos_key, repo.name])
                     if pipe.exists(repo_item_key).execute()[0]:
                         continue
 
@@ -136,7 +134,7 @@ class RegistryCacheWrapper(object):
                     })
 
             for repo in repos_to_add:
-                key = self.delimiter.join([repo_key, repo['name']])
+                key = self.delimiter.join([self.repos_key, repo['name']])
                 pipe.hmset(key, repo)
 
             for label in labels_to_add:
@@ -156,25 +154,23 @@ class RegistryCacheWrapper(object):
         """
         tags = tags or []
         repos = repos or []
+
         # TODO: put these in __init__, really common stuff
-        label_key = self.delimiter.join([self.cache_key, 'labels'])
-        repo_key = self.delimiter.join([self.cache_key, 'repos'])
-        tag_key = self.delimiter.join([self.cache_key, 'tags'])
 
         with self.client.pipeline() as pipe:
             # increment the popularity of tags
             for tag in tags:
-                pipe.zincrby(tag_key, tag)
+                pipe.zincrby(self.tags_key, tag)
 
             for repo in repos:
                 labels = [label.name for label in repo.labels]
                 to_update_tags = set(labels).intersection(tags)
 
                 for tag in to_update_tags:
-                    label_item_key = self.delimiter.join([label_key, tag])
+                    label_item_key = self.delimiter.join([self.labels_key, tag])
                     pipe.zadd(label_item_key, repo.downloads, repo.name)
 
-                key = self.delimiter.join([repo_key, repo.name])
+                key = self.delimiter.join([self.repos_key, repo.name])
                 pipe.hmset(key, {
                     'name': repo.name,
                     'description': repo.description,
@@ -197,9 +193,6 @@ class RegistryCacheWrapper(object):
 
         logger.debug('Get the repos for Tags({}) from cache.'.format(tags))
 
-        label_key = self.delimiter.join([self.cache_key, 'labels'])
-        repo_key = self.delimiter.join([self.cache_key, 'repos'])
-
         non_cached_tags = []
         result = []
 
@@ -208,7 +201,7 @@ class RegistryCacheWrapper(object):
             repos = []
             for tag in tags:
 
-                label_item_key = self.delimiter.join([label_key, tag])
+                label_item_key = self.delimiter.join([self.labels_key, tag])
 
                 repos_per_tag = []
                 if pipe.exists(label_item_key).execute()[0]:
@@ -228,7 +221,7 @@ class RegistryCacheWrapper(object):
                     non_cached_tags.append(tag)
 
             for repo, downloads in repos:
-                repo_item_key = self.delimiter.join([repo_key, repo])
+                repo_item_key = self.delimiter.join([self.repos_key, repo])
 
                 if not pipe.exists(repo_item_key).execute()[0]:
                     continue
@@ -255,9 +248,7 @@ class RegistryCacheWrapper(object):
             Retuns:
                 dict: of details for the repository.
         """
-        key = self.delimiter.join([self.cache_key, 'repos', repo])
-        label_key = self.delimiter.join([self.cache_key, 'labels'])
-        tag_key = self.delimiter.join([self.cache_key, 'tags'])
+        key = self.delimiter.join([self.repos_key, repo])
 
         with self.client.pipeline() as pipe:
             details = pipe.hgetall(key).execute()[0]
@@ -267,7 +258,7 @@ class RegistryCacheWrapper(object):
 
             details['tags'] = eval(details['tags'])
             for label in details['tags']:
-                label_item_key = self.delimiter.join([label_key, label])
+                label_item_key = self.delimiter.join([self.labels_key, label])
                 if not pipe.exists(label_item_key).execute()[0]:
                     continue
 
@@ -289,16 +280,13 @@ class RegistryCacheWrapper(object):
             Args:
                 repos (list): list of repository names.
         """
-        label_key = self.delimiter.join([self.cache_key, 'labels'])
-        repo_key = self.delimiter.join([self.cache_key, 'repos'])
-
         with self.client.pipeline() as pipe:
             repos_to_update = []
             labels_to_update = []
 
             for repo in repos:
                 # collect all the repos need to be updated
-                repo_item_key = self.delimiter.join([repo_key, repo])
+                repo_item_key = self.delimiter.join([self.repos_key, repo])
                 if not pipe.exists(repo_item_key).execute()[0]:
                     continue
                 repos_to_update.append(repo_item_key)
@@ -306,7 +294,7 @@ class RegistryCacheWrapper(object):
                 # collect all the labels need to be updated
                 labels = eval(pipe.hget(repo_item_key, 'tags').execute()[0])
                 for label in labels:
-                    label_item_key = self.delimiter.join([label_key, label])
+                    label_item_key = self.delimiter.join([self.labels_key, label])
                     if not pipe.exists(label_item_key).execute()[0]:
                         continue
                     labels_to_update.append((label_item_key, repo))
