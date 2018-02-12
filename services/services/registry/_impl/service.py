@@ -46,7 +46,7 @@ def _repo_info(repo):
 class RegistryService(_base.BaseService):
     name = service_name
     session = _db.DbSession(_models.DeclarativeBase)
-    redis = nameko_redis.Redis('services')
+    redis = nameko_redis.Redis(config['CACHE']['LAYER'])
 
     @rpc.rpc
     def get_tags(self, tags=None):

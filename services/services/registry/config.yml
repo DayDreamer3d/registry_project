@@ -3,9 +3,7 @@ LOGGING:
     DIR: '/var/log/software_registry/services'
 
 CACHE:
-    LAYER: 'services'
     KEY: 'software_registry:services:registry'
-    DELIMITER: ':'
 
 INSTANCES: 2
 

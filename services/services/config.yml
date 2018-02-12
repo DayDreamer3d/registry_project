@@ -3,6 +3,10 @@ LOGGING:
 
 AMQP_URI: 'amqp://msg_queue'
 
+CACHE:
+    LAYER: 'services'
+    DELIMITER: ':'
+
 REDIS_URIS:
     services: 'redis://cache:6379/1'
     development: 'redis://127.0.0.1:6379/1'
