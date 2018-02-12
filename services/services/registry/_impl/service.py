@@ -1,5 +1,4 @@
 """ Registry service module containing all the public entrypoints for the service.
-
 """
 # monkey paching should be first before nameko import.
 
@@ -13,13 +12,12 @@ from nameko import containers, rpc
 from ... import base as _base
 from ..._utils import (
     config as _config,
-    db as _db,
     log as _log
 )
 from . import (
     cache as _cache,
     models as _models,
-    query as _query,
+    db as _db,
 )
 
 
@@ -45,7 +43,7 @@ def _repo_info(repo):
 # TODO: docs please critical for the service
 class RegistryService(_base.BaseService):
     name = service_name
-    session = _db.DbSession(_models.DeclarativeBase)
+    db = _db.RegistryDatabaseSession(_models.DeclarativeBase)
     cache = _cache.RegistryCache()
 
     @rpc.rpc
@@ -70,7 +68,7 @@ class RegistryService(_base.BaseService):
 
         non_cached_tags = [
             (tag.name, tag.popularity)
-            for tag in _query.get_tags(self.session, non_cached_tags)
+            for tag in self.db.get_tags(non_cached_tags)
         ]
 
         logger.info(
@@ -97,7 +95,7 @@ class RegistryService(_base.BaseService):
         tags_to_add = list(
             set(tags).difference([tag[0] for tag in tags_in_db])
         )
-        _query.add_tags(self.session, tags_to_add)
+        self.db.add_tags(tags_to_add)
 
         logger.info('Tags({}) added to db.'.format(tags_to_add))
 
@@ -118,9 +116,7 @@ class RegistryService(_base.BaseService):
         # or a direct query ??
         self.add_tags(list(set(tags)))
 
-        # update popularity for tags (include duplicates)
-        # _query.update_popularity(self.session, tags)
-        added_repos = _query.add_repos(self.session, repos)
+        added_repos = self.db.add_repos(repos)
 
         repo_names = [repo.name for repo in added_repos]
         logger.info('Repos({}) added to db.'.format(repo_names))
@@ -144,7 +140,7 @@ class RegistryService(_base.BaseService):
         tags = tags or []
 
         if tags:
-            _query.update_popularity(self.session, tags)
+            self.db.update_popularity(tags)
 
         # fetch from cache
         cached_repos, non_cached_tags = self.cache.get_repos_from_tags(tags)
@@ -158,8 +154,8 @@ class RegistryService(_base.BaseService):
 
         # fetch only non cached tags from db
         db_repos = []
-        if non_cached_tags:
-            db_repos = _query.get_repos_from_tags(self.session, non_cached_tags)
+        if not cached_repos or non_cached_tags:
+            db_repos = self.db.get_repos_from_tags(non_cached_tags)
 
         db_repo_names = [repo.name for repo in db_repos]
         logger.info(
@@ -214,7 +210,7 @@ class RegistryService(_base.BaseService):
             result['tags'] = eval(result['tags'])
             return result
 
-        repo_details = _query.get_repo_details(self.session, repo)
+        repo_details = self.db.get_repo_details(repo)
 
         if not repo_details:
             return repo_details
@@ -235,7 +231,7 @@ class RegistryService(_base.BaseService):
                 'Exception occurred while updating downloads for Repo({}).'.format(repo),
                 exc_info=True
             )
-        _query.update_downloads(self.session, [repo])
+        self.db.update_downloads([repo])
 
 
 def create_container():
