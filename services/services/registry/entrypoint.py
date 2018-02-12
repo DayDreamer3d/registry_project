@@ -21,6 +21,5 @@ if __name__ == '__main__':
     # starting the service will create the tables
     container.start()
 
-
     # keep the service running
     container.wait()
