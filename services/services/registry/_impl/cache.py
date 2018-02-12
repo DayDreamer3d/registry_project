@@ -4,19 +4,17 @@
 import logging
 import nameko_redis
 from ..._utils import config
+from ... import registry
+
 
 # REVIEW: what about having cache as a service
-
-service_name = 'registry'
-logger = logging.getLogger('services_{}'.format(service_name))
-config = config.get_config(service_name)
 
 
 class RegistryCache(nameko_redis.Redis):
     """ Sub-class of redis nameko extension.
     """
     def __init__(self):
-        super().__init__(config['CACHE']['LAYER'])
+        super().__init__(registry.config['CACHE']['LAYER'])
 
     def get_dependency(self, worker_ctx):
         return RegistryCacheWrapper(self.client)
@@ -27,8 +25,8 @@ class RegistryCacheWrapper(object):
     """
 
     def __init__(self, client):
-        self.cache_key = config['CACHE']['KEY']
-        self.delimiter = config['CACHE']['DELIMITER']
+        self.cache_key = registry.config['CACHE']['KEY']
+        self.delimiter = registry.config['CACHE']['DELIMITER']
         self.client = client
 
         self.tags_key = self.delimiter.join([self.cache_key, 'tags'])
@@ -48,7 +46,7 @@ class RegistryCacheWrapper(object):
 
         with self.client.pipeline() as pipe:
             pipe.zadd(self.tags_key, *items).execute()
-            logger.debug('Tags({}) tags are added to cache.'.format(tags))
+            registry.logger.debug('Tags({}) tags are added to cache.'.format(tags))
 
     def get_tags(self, tags):
         """ Get the tags from the cache.
@@ -61,7 +59,7 @@ class RegistryCacheWrapper(object):
         """
         key = self.delimiter.join([self.cache_key, 'tags'])
 
-        logger.debug('Get details for Tag({}) from cache.'.format(tags))
+        registry.logger.debug('Get details for Tag({}) from cache.'.format(tags))
         with self.client.pipeline() as pipe:
             if tags:
                 cached_tags, non_cached_tags = [], []
@@ -77,7 +75,7 @@ class RegistryCacheWrapper(object):
                     else:
                         non_cached_tags.append(tag)
 
-                logger.debug('Cached tags: {}\nNon cached tags: {}.'.format(cached_tags, non_cached_tags))
+                registry.logger.debug('Cached tags: {}\nNon cached tags: {}.'.format(cached_tags, non_cached_tags))
 
                 return cached_tags, non_cached_tags
 
@@ -88,7 +86,7 @@ class RegistryCacheWrapper(object):
                     for tag, popularity in cached_tags[0]
                 ]
 
-                logger.debug('Cached tags: {}\nNon cached tags: {}.'.format(cached_tags, []))
+                registry.logger.debug('Cached tags: {}\nNon cached tags: {}.'.format(cached_tags, []))
 
                 return cached_tags, []
 
@@ -144,8 +142,8 @@ class RegistryCacheWrapper(object):
 
             pipe.execute()
 
-        logger.debug('Labels({}) are added to cache.'.format([label[0] for label in labels_to_add]))
-        logger.debug('Repos({}) added to cache.'.format(repo_names))
+        registry.logger.debug('Labels({}) are added to cache.'.format([label[0] for label in labels_to_add]))
+        registry.logger.debug('Repos({}) added to cache.'.format(repo_names))
 
     def add_repos(self, tags, repos):
         """ Add the repositories entries in cache.
@@ -191,7 +189,7 @@ class RegistryCacheWrapper(object):
         """
         tags = tags or [name for name, download in self.get_tags(tags)[0]]
 
-        logger.debug('Get the repos for Tags({}) from cache.'.format(tags))
+        registry.logger.debug('Get the repos for Tags({}) from cache.'.format(tags))
 
         non_cached_tags = []
         result = []
@@ -209,7 +207,7 @@ class RegistryCacheWrapper(object):
                         label_item_key, '+inf', 0, withscores=True).execute()[0]
 
                     repo_names = [repo[0] for repo in repos_per_tag]
-                    logger.debug('Repos({}) under Label({}).'.format(repo_names, label_item_key))
+                    registry.logger.debug('Repos({}) under Label({}).'.format(repo_names, label_item_key))
 
                 # if tag doesn't exists in cache
                 # skip it and eventually get its result from db
@@ -235,7 +233,7 @@ class RegistryCacheWrapper(object):
 
             pipe.execute()
 
-        logger.debug('Repos({}) added in cache. Non Cahed Tags({})'.format(result, non_cached_tags))
+        registry.logger.debug('Repos({}) added in cache. Non Cahed Tags({})'.format(result, non_cached_tags))
 
         return result, non_cached_tags
 
@@ -270,7 +268,7 @@ class RegistryCacheWrapper(object):
                 break
 
         if details:
-            logger.debug('Repo({}) Details({}) are fetched from cache.'.format(repo, details))
+            registry.logger.debug('Repo({}) Details({}) are fetched from cache.'.format(repo, details))
 
         return details
 

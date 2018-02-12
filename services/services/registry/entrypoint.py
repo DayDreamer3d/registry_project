@@ -1,7 +1,7 @@
 """ Service entrypoint for docker compose which also act as a bootstrap for service.
 """
 
-from .._utils import config
+from .. import registry
 from ._impl import service
 
 import sqlalchemy
@@ -12,7 +12,7 @@ def create_db():
     """ Create the database for the service on db server.
     """
     # create the db, sqlachemy doesn't create db
-    engine = sqlalchemy.create_engine(service.config['DB_URIS']['registry:Base'])
+    engine = sqlalchemy.create_engine(registry.config['DB_URIS']['registry:Base'])
     if sqlalchemy_utils.database_exists(engine.url):
         sqlalchemy_utils.drop_database(engine.url)
     sqlalchemy_utils.create_database(engine.url)

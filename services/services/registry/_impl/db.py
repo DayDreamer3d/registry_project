@@ -3,10 +3,7 @@
 import logging
 import nameko_sqlalchemy
 from . import models as _models
-
-
-service_name = 'registry'
-logger = logging.getLogger('services_{}'.format(service_name))
+from ... import registry
 
 
 class RegistryDatabaseSession(nameko_sqlalchemy.Session):
@@ -39,7 +36,7 @@ class RegistryDatabaseSessionWrapper(object):
         self.session.add_all(tag_objs)
         self.session.commit()
 
-        logger.debug('Tags() are added to db.'.format(tags))
+        registry.logger.debug('Tags() are added to db.'.format(tags))
 
     def update_popularity(self, tags):
         """ Update the given tags popularity.
@@ -85,7 +82,7 @@ class RegistryDatabaseSessionWrapper(object):
                 .all()
 
         tag_names = [tag.name for tag in tag_objs]
-        logger.debug('Tags({}) are fetched from db.'.format(tag_names))
+        registry.logger.debug('Tags({}) are fetched from db.'.format(tag_names))
 
         return tag_objs
 
@@ -117,7 +114,7 @@ class RegistryDatabaseSessionWrapper(object):
         self.session.commit()
 
         repo_names = [repo.name for repo in added_repos]
-        logger.debug('Repos({}) are added to db.'.format(repo_names))
+        registry.logger.debug('Repos({}) are added to db.'.format(repo_names))
 
         return added_repos
 
@@ -156,7 +153,7 @@ class RegistryDatabaseSessionWrapper(object):
             .all()
 
         repo_names = [repo.name for repo in repos]
-        logger.debug('Repos({}) are fetched from db for Tags({}).'.format(repo_names, tags))
+        registry.logger.debug('Repos({}) are fetched from db for Tags({}).'.format(repo_names, tags))
 
         return repos
 
