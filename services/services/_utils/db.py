@@ -17,23 +17,6 @@ class DbSession(nameko_sqlalchemy.Session):
         self.declarative_base.metadata.create_all(self.engine)
 
 
-@contextlib.contextmanager
-def session_scope(session):
-    """ Context manager for gracefully working with db.
-
-        Args:
-            session: db session object.
-    """
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-
 def create_db(url):
     """ Function to create the database.
 
