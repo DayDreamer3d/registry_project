@@ -1,6 +1,6 @@
 """ Utility module related to config parsing.
 """
-
+import collections
 import os
 import yaml
 
@@ -41,6 +41,12 @@ def get_config(service_name):
     config = parse(get_config_path())
 
     # override/add  service config
-    config.update(parse(get_config_path(service_name)))
+    service_config = parse(get_config_path(service_name))
+    for category, details in service_config.items():
+        if category in config:
+            if isinstance(config.get(category), collections.MutableMapping):
+                config[category].update(details)
+        else:
+            config[category] = details
 
     return config
