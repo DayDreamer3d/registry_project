@@ -8,8 +8,8 @@ This tiny sample project act as a registry (not a real one) which displays all t
 It is written in python and deployed using docker containers.
 
 1. We have to switch our docker engine to [swarm mode](https://docs.docker.com/engine/swarm/swarm-tutorial/ "swarm mode").
-2. Download [project's compose file](https://github.com/DayDreamer3d/registry_project/blob/master/docker-compose.yml "project's compose file") to deploy the stack of services.
-3. Switch to the downlaoded directory and execute `docker stack deploy  --compose-file docker-compose.yml softreg` to build the stack. This will download all the necessary images and run the desired services.
+2. Download [project's compose file](docker-compose.yml "project's compose file") to deploy the stack of services.
+3. Switch to the downloaded directory and execute `docker stack deploy  --compose-file docker-compose.yml softreg` to build the stack. This will download all the necessary images and run the desired services.
 
 ## Usage ##
 
@@ -18,7 +18,7 @@ Let's look at them both.
 
 ### UI ###
 
-After installation, if you access `<host-ip>` it will bring up the ui which would be blank in the starting but would display all the saved tags. For now, it can only do this much don't get your hopes high with it ;)
+After installation, if you access `<host-ip>` it will bring up the ui which would be blank in the starting but would display all the saved tags. Selecting these tags and searching will display all the corresponding repositories.
 
 ### Api ###
 
@@ -38,21 +38,17 @@ To know about the collection of resources best way to know is to visit this page
       "tags-url": "/api/tags"
     }
 
-
 #### 3. Add a repository ####
 To add new repos (with tags) we have to send a `POST` request to url `<host-ip>/api/repos?client-key=<client-key>` and a request body containing all fields like
 
-    { {
-    "name": "usd_dev:v2",
-    "description": "Second version of USD in Docker development.",
-    "downloads": 250,
-    "uri": "usd_dev.v2",
-    "tags": [
-       "docker usd"
-    ]
-    }}
-
-resoult would be the url
+    {
+        "name": "usd_dev:v2",
+        "description": "Second version of USD in Docker development.",
+        "uri": "usd_dev.v2",
+        "tags": [
+            "docker usd"
+         ]
+    }
 
 ### 4. Fetch repositories based on tags ###
 
@@ -86,5 +82,11 @@ To get a repository from a backend we have change the request method to `GET`, a
         "nodes editor": "/api/repos/nodes%20editor"
       }
     }
+
+## Remove the Project
+
+1. Remove the deployed stack by using `docker stack rm softreg`.
+2. Wait for all running containers to be removed. Use `docker ps` to check the running containers.
+3. Finally remove the repositories by executing `docker rmi daydreamer/softreg-registry-service:v1 daydreamer/softreg-app:v1 daydreamer/softreg-nginx:v1 redis:latest rabbitmq:3-management mysql:latest nginx:latest python:3`. 
 
 Please don't hesitate in raising an issue and have fun !
