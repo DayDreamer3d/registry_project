@@ -8,14 +8,13 @@ eventlet.monkey_patch()
 import operator
 from nameko import containers, rpc
 
-from ... import (
-    base as _base,
-    registry
-)
+import base
+import registry
+
 from . import (
     cache as _cache,
-    models as _models,
-    db as _db,
+    models,
+    db as _db
 )
 
 
@@ -29,10 +28,9 @@ def _repo_info(repo):
     }
 
 
-# TODO: docs please critical for the service
-class RegistryService(_base.BaseService):
+class RegistryService(base.BaseService):
     name = registry.service_name
-    db = _db.RegistryDatabaseSession(_models.DeclarativeBase)
+    db = _db.RegistryDatabaseSession(models.DeclarativeBase)
     cache = _cache.RegistryCache()
 
     @rpc.rpc

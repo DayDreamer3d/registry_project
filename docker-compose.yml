@@ -2,7 +2,7 @@ version: "3"
 
 services:
     webserver:
-        image: daydreamer/softreg-nginx:v1
+        image: softreg-nginx:v1
         ports:
             - 80:80
         deploy:
@@ -37,7 +37,7 @@ services:
             restart_policy:
                 condition: on-failure
     app:
-        image: daydreamer/softreg-app:v1
+        image: softreg-app:v1
         ports:
             - 4000:4000
         deploy:
@@ -45,7 +45,7 @@ services:
             restart_policy:
                 condition: on-failure
     registry_service:
-        image: daydreamer/softreg-registry-service:v1
+        image: softreg-registry-service:v1
         deploy:
             replicas: 2
             restart_policy:

@@ -1,7 +1,7 @@
 """ Service entrypoint for docker compose which also act as a bootstrap for service.
 """
 
-from .. import registry
+import registry
 from ._impl import service
 
 import sqlalchemy

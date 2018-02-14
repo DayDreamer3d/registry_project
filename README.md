@@ -56,6 +56,35 @@ resoult would be the url
 
 ### 4. Fetch repositories based on tags ###
 
-To get a repository from a backend we have change the request method to `GET`, add tags as query parameters with the same url `<host-ip>/api/repos?client-key=<client-key>&tag=docker%20usd`
+To get a repository from a backend we have change the request method to `GET`, add tags as query parameters with the same url `<host-ip>/api/repos?client-key=<client-key>&tag=node%20graph%20qt&tag=%22alembic%20file%20format%22`
 
-Please don't hesistate in raising an issue and have fun !
+    {
+      "repo_details": [
+        {
+          "description": "The base of alembic caches.",
+          "downloads": 0,
+          "name": "alembic-base",
+          "tags": [
+            "\"alembic file format\"",
+            "\"vfx pipeline\""
+          ],
+          "uri": "alembic-base.v1"
+        },
+        {
+          "description": "Generic Qt Node editor.",
+          "downloads": 0,
+          "name": "nodes editor",
+          "tags": [
+            "node graph qt",
+            "\"vfx pipeline\""
+          ],
+          "uri": "nodes_editor.v1"
+        }
+      ],
+      "repo_urls": {
+        "alembic-base": "/api/repos/alembic-base",
+        "nodes editor": "/api/repos/nodes%20editor"
+      }
+    }
+
+Please don't hesitate in raising an issue and have fun !

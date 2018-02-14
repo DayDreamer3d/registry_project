@@ -2,8 +2,8 @@
 """
 import logging
 import nameko_sqlalchemy
-from . import models as _models
-from ... import registry
+from . import models
+import registry
 
 
 class RegistryDatabaseSession(nameko_sqlalchemy.Session):
@@ -32,7 +32,7 @@ class RegistryDatabaseSessionWrapper(object):
             Args:
                 tags (list): list of tags to be added in db.
         """
-        tag_objs = [_models.Tag(name=tag, popularity=1) for tag in tags]
+        tag_objs = [models.Tag(name=tag, popularity=1) for tag in tags]
         self.session.add_all(tag_objs)
         self.session.commit()
 
@@ -49,12 +49,12 @@ class RegistryDatabaseSessionWrapper(object):
             if tag not in tag_counts.keys():
                 tag_counts[tag] = tags.count(tag)
 
-        tags = self.session.query(_models.Tag)\
-            .filter(_models.Tag.name.in_(tag_counts.keys()))\
+        tags = self.session.query(models.Tag)\
+            .filter(models.Tag.name.in_(tag_counts.keys()))\
             .all()
 
         for tag in tags:
-            tag.popularity = _models.Tag.popularity + tag_counts[tag.name]
+            tag.popularity = models.Tag.popularity + tag_counts[tag.name]
 
         self.session.commit()
 
@@ -72,13 +72,13 @@ class RegistryDatabaseSessionWrapper(object):
         tag_objs = []
 
         if tags:
-            tag_objs = self.session.query(_models.Tag)\
-                .filter(_models.Tag.name.in_(tags))\
-                .order_by(_models.Tag.popularity.desc())\
+            tag_objs = self.session.query(models.Tag)\
+                .filter(models.Tag.name.in_(tags))\
+                .order_by(models.Tag.popularity.desc())\
                 .all()
         else:
-            tag_objs = self.session.query(_models.Tag)\
-                .order_by(_models.Tag.popularity.desc())\
+            tag_objs = self.session.query(models.Tag)\
+                .order_by(models.Tag.popularity.desc())\
                 .all()
 
         tag_names = [tag.name for tag in tag_objs]
@@ -96,7 +96,7 @@ class RegistryDatabaseSessionWrapper(object):
         added_repos = []
 
         for repo in repos:
-            repo_obj = _models.Repository(
+            repo_obj = models.Repository(
                 name=repo['name'],
                 description=repo['description'],
                 uri=repo['uri']
@@ -104,8 +104,8 @@ class RegistryDatabaseSessionWrapper(object):
             self.session.add(repo_obj)
 
             for tag in repo['tags']:
-                tag = self.session.query(_models.Tag)\
-                        .filter(_models.Tag.name == tag)\
+                tag = self.session.query(models.Tag)\
+                        .filter(models.Tag.name == tag)\
                         .first()
                 repo_obj.labels.append(tag)
 
@@ -124,11 +124,11 @@ class RegistryDatabaseSessionWrapper(object):
             Args:
                 repos (list): list of repositores to be updated.
         """
-        repos = self.session.query(_models.Repository)\
-            .filter(_models.Repository.name.in_(repos))\
+        repos = self.session.query(models.Repository)\
+            .filter(models.Repository.name.in_(repos))\
             .all()
         for repo in repos:
-            repo.downloads = _models.Repository.downloads + 1
+            repo.downloads = models.Repository.downloads + 1
         self.session.commit()
 
     def get_repos_from_tags(self, tags=None):
@@ -141,15 +141,15 @@ class RegistryDatabaseSessionWrapper(object):
                 list: of repositories fetched from db.
         """
         if not tags:
-            return self.session.query(_models.Repository)\
-                .order_by(_models.Repository.downloads.desc())\
+            return self.session.query(models.Repository)\
+                .order_by(models.Repository.downloads.desc())\
                 .all()
 
         tag_ids = [tag.id_ for tag in self.get_tags(tags)]
-        repos = self.session.query(_models.Repository)\
-            .filter(_models.Repository.labels.any(
-                _models.Tag.id_.in_(tag_ids)))\
-            .order_by(_models.Repository.downloads.desc())\
+        repos = self.session.query(models.Repository)\
+            .filter(models.Repository.labels.any(
+                models.Tag.id_.in_(tag_ids)))\
+            .order_by(models.Repository.downloads.desc())\
             .all()
 
         repo_names = [repo.name for repo in repos]
@@ -167,6 +167,6 @@ class RegistryDatabaseSessionWrapper(object):
                 (dict): details for the given repository.
 
         """
-        return self.session.query(_models.Repository)\
-            .filter(_models.Repository.name == repo)\
+        return self.session.query(models.Repository)\
+            .filter(models.Repository.name == repo)\
             .first()

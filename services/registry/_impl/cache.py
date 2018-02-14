@@ -3,8 +3,8 @@
 
 import logging
 import nameko_redis
-from ..._utils import config
-from ... import registry
+
+import registry
 
 
 # REVIEW: what about having cache as a service
