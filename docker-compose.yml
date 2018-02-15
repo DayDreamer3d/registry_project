@@ -27,7 +27,7 @@ services:
             restart_policy:
                 condition: on-failure
     db:
-        image: mysql:latest
+        image: daydreamer/softreg-mysql:v1
         ports:
             - 3306:3306
         environment:
