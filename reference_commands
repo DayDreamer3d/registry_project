@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# As a client you need to obtain the client key, please replace the client key placeholder's with yours.
+
+# obtain client-key
+curl -X POST http://localhost:5000/api/auth/client-key
+
+# api home
+curl http://localhost:5000/api?client-key=0c0850ebfd914d1f8b5dd9299b018ac9
+
+# add repos
+curl -X POST -H "Content-Type: application/json" -d '{"name": "alembic-base", "description": "The base of alembic caches.", "uri": "alembic-base.v1", "tags": ["\"alembic file format\"", "\"vfx pipeline\""]}' "http://localhost:5000/api/repos?client-key=0c0850ebfd914d1f8b5dd9299b018ac9"
+curl -X POST -H "Content-Type: application/json" -d '{"name": "usd_dev:v2", "description": "Second version of USD in Docker development.", "uri": "usd_dev.v2", "tags": ["docker usd", "\"vfx pipeline\""]}' "http://localhost:5000/api/repos?client-key=0c0850ebfd914d1f8b5dd9299b018ac9"
+curl -X POST -H "Content-Type: application/json" -d '{"name": "usd_dev:anim", "description": "Production version of USD in Docker for feature animation pipeline.", "downloads": 410, "uri": "usd_dev.anim", "tags": ["docker usd"]}' "http://localhost:5000/api/repos?client-key=0c0850ebfd914d1f8b5dd9299b018ac9"
+curl -X POST -H "Content-Type: application/json" -d '{"name":"nodes editor","description": "Generic Qt Node editor.", "uri": "nodes_editor.v1","tags": ["node graph qt", "\"vfx pipeline\""]}' "http://localhost:5000/api/repos?client-key=0c0850ebfd914d1f8b5dd9299b018ac9"
+curl -X POST -H "Content-Type: application/json" -d '{"name":"usd_s","description": "Standalone USD workflow.", "uri": "usd_standalone.v2","tags": ["z"]}' "http://localhost:5000/api/repos?client-key=0c0850ebfd914d1f8b5dd9299b018ac9"
+
+# get repos from tags
+curl "http://localhost:5000/api/repos?tag=node%20graph%20qt&tag=%22alembic%20file%20format%22&client-key=0c0850ebfd914d1f8b5dd9299b018ac9"
