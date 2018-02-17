@@ -3,14 +3,29 @@ version: "3"
 services:
     webserver:
         image: daydreamer/softreg-nginx:v1
+        networks:
+            - frontend
         ports:
             - 80:80
         deploy:
             replicas: 1
             restart_policy:
                 condition: on-failure
+    app:
+        image: daydreamer/softreg-app:v1
+        networks:
+            - frontend
+        ports:
+            - 4000:4000
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
     msg_queue:
         image: rabbitmq:3-management
+        networks:
+            - frontend
+            - backend
         ports:
             - 5672:5672
             - 15672:15672
@@ -20,6 +35,9 @@ services:
                 condition: on-failure
     cache:
         image: redis:latest
+        networks:
+            - frontend
+            - backend
         ports:
             - 6379:6379
         deploy:
@@ -28,6 +46,8 @@ services:
                 condition: on-failure
     db:
         image: daydreamer/softreg-mysql:v1
+        networks:
+            - backend
         ports:
             - 3306:3306
         environment:
@@ -36,18 +56,15 @@ services:
             replicas: 1
             restart_policy:
                 condition: on-failure
-    app:
-        image: daydreamer/softreg-app:v1
-        ports:
-            - 4000:4000
-        deploy:
-            replicas: 1
-            restart_policy:
-                condition: on-failure
-
     registry_service:
         image: daydreamer/softreg-registry-service:v1
+        networks:
+            - backend
         deploy:
             replicas: 2
             restart_policy:
                 condition: on-failure
+
+networks:
+    frontend:
+    backend:
